@@ -1,117 +1,204 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NBF Castelló · Reus 2026</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-    <style>
-        :root { --bg: #0a0f1e; --surface: #111827; --accent: #38bdf8; --gold: #f0b429; --text: #f1f5f9; --muted: #64748b; }
-        body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; margin: 0; padding: 15px; }
-        .header { max-width: 600px; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; }
-        .status { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; }
-        #dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #64748b; margin-right: 5px; }
-        #dot.ok { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
-        #dot.error { background: #f87171; }
-        .card { background: var(--surface); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 12px; margin-bottom: 8px; max-width: 600px; margin-left: auto; margin-right: auto; display: grid; grid-template-columns: 50px 1fr 60px; align-items: center; }
-        .mi-equipo { border-left: 4px solid var(--accent); background: rgba(56,189,248,0.05); }
-        .hora { font-family: 'DM Mono', monospace; color: var(--gold); font-size: 13px; }
-        .equipos { padding: 0 10px; overflow: hidden; }
-        .nombre { font-size: 13px; margin: 2px 0; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .nombre.bold { color: var(--text); font-weight: 700; }
-        .resultado { font-family: 'DM Mono', monospace; font-weight: 700; color: var(--accent); font-size: 16px; text-align: right; }
-        .section { max-width: 600px; margin: 20px auto 10px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>12 Hores Salle Reus 2026 · NBF Castelló</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: rgba(255,255,255,0.07);
+    --accent-nbf: #38bdf8;
+    --accent-castello: #f472b6;
+    --gold: #f0b429;
+    --text: #f1f5f9;
+    --muted: #64748b;
+    --green: #4ade80;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding: 0 0 4rem; }
+
+  header { border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 0; position: relative; overflow: hidden; }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; max-width: 900px; margin: 0 auto; }
+  .torneo-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.5rem; }
+  h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
+  h1 .nbf { color: var(--accent-nbf); }
+  h1 .castello { color: var(--accent-castello); }
+  .subtitle { font-size: 12px; color: var(--muted); margin-top: 0.5rem; font-family: 'DM Mono', monospace; }
+  
+  .refresh-info { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-align: right; }
+  #status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); margin-right: 5px; }
+  #status-dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  #status-dot.error { background: var(--red); }
+
+  .tabs { display: flex; max-width: 900px; margin: 1.5rem auto 0; padding: 0 1.5rem; border-bottom: 1px solid var(--border); }
+  .tab { font-family: 'DM Mono', monospace; font-size: 11px; padding: 0.65rem 1.2rem; cursor: pointer; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.15s; text-transform: uppercase; }
+  .tab.active { color: var(--accent-nbf); border-bottom-color: var(--accent-nbf); }
+
+  main { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .section-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .partido-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 8px; display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 1rem; }
+  .mi-partido { border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.03); }
+  .partido-hora { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--gold); }
+  .partido-hora small { display: block; font-size: 10px; color: var(--muted); }
+  .equipo { font-size: 14px; font-weight: 600; color: #94a3b8; }
+  .equipo.destacado { color: var(--text); }
+  .resultado { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--accent-nbf); font-weight: bold; }
+  .resultado.pendiente { font-size: 10px; color: var(--muted); opacity: 0.6; }
+
+  .tabla-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
+  .tabla-clas { width: 100%; border-collapse: collapse; font-family: 'DM Mono', monospace; font-size: 12px; }
+  .tabla-clas th { padding: 10px; text-align: left; background: var(--surface2); color: var(--muted); font-size: 9px; }
+  .tabla-clas td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+  .mi-equipo td { color: var(--accent-nbf); background: rgba(56,189,248,0.05); }
+</style>
 </head>
 <body>
 
-<div class="header">
+<header>
+  <div class="header-top">
     <div>
-        <h1 style="font-size:20px;margin:0">NBF Castelló</h1>
-        <div style="color:var(--muted); font-size:11px;">12 Hores Salle Reus</div>
+      <div class="torneo-label">12 Hores Minibàsquet · Salle Reus 2026</div>
+      <h1><span class="nbf">NBF</span> <span class="castello">Castelló</span></h1>
+      <div class="subtitle">Premini Femenino A (PFA)</div>
     </div>
-    <div class="status"><span id="dot"></span><span id="st-txt">Cargando</span></div>
-</div>
+    <div class="refresh-info">
+      <div><span id="status-dot"></span><span id="status-txt">cargando...</span></div>
+      <div style="margin-top:4px;">Act. <span id="last-update">—</span></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('partidos',this)">Partidos</button>
+    <button class="tab" onclick="showTab('clasificacion',this)">Clasificación</button>
+  </div>
+</header>
 
-<div id="partidos-lista"></div>
+<main>
+  <div id="panel-partidos" class="panel active">Cargando partidos...</div>
+  <div id="panel-clasificacion" class="panel">Cargando clasificación...</div>
+</main>
 
 <script>
-// Usamos el Proxy de Corsproxy.io que es más estable para móviles
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=470734480';
 const PROXY = 'https://corsproxy.io/?';
+const MI_EQUIPO = 'NBF CASTELLÓ A';
 
-const PARTIDOS = [
-    { id: 71, dia: 'Viernes 1', hora: '12:00', l: 'STADIUM CASABLANCA A', v: 'NBF CASTELLÓ A' },
-    { id: 72, dia: 'Viernes 1', hora: '15:00', l: 'U10F Sant Gregori', v: 'STADIUM CASABLANCA A' },
-    { id: 77, dia: 'Sábado 2', hora: '09:00', l: 'NBF CASTELLÓ A', v: 'TGN' },
-    { id: 73, dia: 'Sábado 2', hora: '10:00', l: 'STADIUM CASABLANCA A', v: 'ESCOLA PUIGCERVER' },
-    { id: 76, dia: 'Sábado 2', hora: '12:00', l: 'ESCOLA PUIGCERVER', v: 'NBF CASTELLÓ A' },
-    { id: 74, dia: 'Sábado 2', hora: '16:00', l: 'TGN', v: 'STADIUM CASABLANCA A' },
-    { id: 75, dia: 'Sábado 2', hora: '17:00', l: 'NBF CASTELLÓ A', v: 'U10F Sant Gregori' },
-    { id: 78, dia: 'Sábado 2', hora: '12:00', l: 'ESCOLA PUIGCERVER', v: 'U10F Sant Gregori' },
-    { id: 79, dia: 'Sábado 2', hora: '17:00', l: 'U10F Sant Gregori', v: 'TGN' },
-    { id: 80, dia: 'Sábado 2', hora: '20:00', l: 'TGN', v: 'ESCOLA PUIGCERVER' }
+const PARTIDOS_CALENDARIO = [
+  { id:71, dia:'Viernes 1', hora:'12:00', l:'STADIUM CASABLANCA A', v:'NBF CASTELLÓ A' },
+  { id:72, dia:'Viernes 1', hora:'15:00', l:'U10F Sant Gregori', v:'STADIUM CASABLANCA A' },
+  { id:77, dia:'Sábado 2', hora:'09:00', l:'NBF CASTELLÓ A', v:'TGN' },
+  { id:73, dia:'Sábado 2', hora:'10:00', l:'STADIUM CASABLANCA A', v:'ESCOLA PUIGCERVER' },
+  { id:76, dia:'Sábado 2', hora:'12:00', l:'ESCOLA PUIGCERVER', v:'NBF CASTELLÓ A' },
+  { id:74, dia:'Sábado 2', hora:'16:00', l:'TGN', v:'STADIUM CASABLANCA A' },
+  { id:75, dia:'Sábado 2', hora:'17:00', l:'NBF CASTELLÓ A', v:'U10F Sant Gregori' },
+  { id:78, dia:'Sábado 2', hora:'12:00', l:'ESCOLA PUIGCERVER', v:'U10F Sant Gregori' },
+  { id:79, dia:'Sábado 2', hora:'17:00', l:'U10F Sant Gregori', v:'TGN' },
+  { id:80, dia:'Sábado 2', hora:'20:00', l:'TGN', v:'ESCOLA PUIGCERVER' }
 ];
 
-async function update() {
-    try {
-        // El proxy ayuda a saltar el bloqueo de Google desde el móvil
-        const response = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
-        if (!response.ok) throw new Error('Network response was not ok');
-        
-        const data = await response.text();
-        const rows = data.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
-        
-        const resultados = {};
-        rows.forEach(row => {
-            const id = parseInt(row[0]);
-            if(id && !isNaN(id)) {
-                // Buscamos si hay números en las columnas de la fila del partido
-                const scores = row.slice(1, 6).filter(val => val !== "" && !isNaN(val));
-                if (scores.length >= 2) {
-                    resultados[id] = { l: scores[0], v: scores[1] };
-                }
-            }
-        });
-
-        render(resultados);
-        document.getElementById('dot').className = 'ok';
-        document.getElementById('st-txt').innerText = 'En vivo';
-    } catch (e) {
-        console.error(e);
-        document.getElementById('dot').className = 'error';
-        document.getElementById('st-txt').innerText = 'Error red';
-    }
+function showTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
 }
 
-function render(res) {
-    let html = '';
-    let diaActual = '';
-    PARTIDOS.forEach(p => {
-        if(p.dia !== diaActual) {
-            diaActual = p.dia;
-            html += `<div class="section">${diaActual} Mayo</div>`;
-        }
-        const r = res[p.id];
-        const nbfEsLocal = p.l.includes('NBF');
-        const nbfEsVisit = p.v.includes('NBF');
-        
-        html += `
-            <div class="card ${(nbfEsLocal || nbfEsVisit) ? 'mi-equipo' : ''}">
-                <div class="hora">${p.hora}</div>
-                <div class="equipos">
-                    <div class="nombre ${nbfEsLocal ? 'bold' : ''}">${p.l}</div>
-                    <div class="nombre ${nbfEsVisit ? 'bold' : ''}">${p.v}</div>
-                </div>
-                <div class="resultado">${r ? r.l + ' - ' + r.v : 'vs'}</div>
-            </div>`;
+async function cargarDatos() {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-txt');
+  
+  try {
+    const response = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
+    const csv = await response.text();
+    const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
+    
+    const resultados = {};
+    rows.forEach(row => {
+      const id = parseInt(row[0]);
+      if(!isNaN(id)) {
+        // Busca los dos primeros números en la fila del partido
+        const scores = row.slice(1, 6).filter(v => v !== "" && !isNaN(v));
+        if (scores.length >= 2) resultados[id] = { l: scores[0], v: scores[1] };
+      }
     });
-    document.getElementById('partidos-lista').innerHTML = html;
+
+    renderPartidos(resultados);
+    renderClasificacion(resultados);
+    
+    dot.className = 'ok';
+    txt.textContent = 'en vivo';
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  } catch (e) {
+    dot.className = 'error';
+    txt.textContent = 'error red';
+  }
 }
 
-update();
-// Actualiza cada 45 segundos para no saturar el móvil
-setInterval(update, 45000);
+function renderPartidos(res) {
+  let html = '';
+  let diaAct = '';
+  PARTIDOS_CALENDARIO.forEach(p => {
+    if(p.dia !== diaAct) {
+      diaAct = p.dia;
+      html += `<div class="section-label">${diaAct} de Mayo</div>`;
+    }
+    const r = res[p.id];
+    const esMio = p.l === MI_EQUIPO || p.v === MI_EQUIPO;
+    html += `
+      <div class="partido-card ${esMio ? 'mi-partido' : ''}">
+        <div class="partido-hora">${p.hora}<small>#${p.id}</small></div>
+        <div>
+          <div class="equipo ${p.l === MI_EQUIPO ? 'destacado' : ''}">${p.l}</div>
+          <div class="equipo ${p.v === MI_EQUIPO ? 'destacado' : ''}">${p.v}</div>
+        </div>
+        <div class="resultado ${!r ? 'pendiente' : ''}">${r ? r.l + ' - ' + r.v : 'pendiente'}</div>
+      </div>`;
+  });
+  document.getElementById('panel-partidos').innerHTML = html;
+}
+
+function renderClasificacion(res) {
+  const stats = {};
+  const equipos = [...new Set(PARTIDOS_CALENDARIO.flatMap(p => [p.l, p.v]))];
+  equipos.forEach(e => stats[e] = { pj:0, pg:0, pp:0, pf:0, pc:0, pts:0 });
+
+  Object.keys(res).forEach(id => {
+    const p = PARTIDOS_CALENDARIO.find(c => c.id == id);
+    if(p) {
+      const r = res[id];
+      const sl = parseInt(r.l), sv = parseInt(r.v);
+      stats[p.l].pj++; stats[p.v].pj++;
+      stats[p.l].pf += sl; stats[p.l].pc += sv;
+      stats[p.v].pf += sv; stats[p.v].pc += sl;
+      if(sl > sv) { stats[p.l].pg++; stats[p.l].pts+=2; stats[p.v].pp++; stats[p.v].pts+=1; }
+      else { stats[p.v].pg++; stats[p.v].pts+=2; stats[p.l].pp++; stats[p.l].pts+=1; }
+    }
+  });
+
+  const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc));
+
+  let html = `<div class="tabla-wrap"><table class="tabla-clas">
+    <thead><tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
+  sorted.forEach(([nom, s]) => {
+    html += `<tr class="${nom === MI_EQUIPO ? 'mi-equipo' : ''}">
+      <td>${nom}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf - s.pc}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div>`;
+  document.getElementById('panel-clasificacion').innerHTML = html;
+}
+
+cargarDatos();
+setInterval(cargarDatos, 60000);
 </script>
 </body>
 </html>
