@@ -7,59 +7,40 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0f1e;
-    --surface: #111827;
-    --surface2: #1a2235;
-    --border: rgba(255,255,255,0.07);
-    --accent-nbf: #38bdf8;
-    --accent-castello: #f472b6;
-    --gold: #f0b429;
-    --text: #f1f5f9;
-    --muted: #64748b;
-    --green: #4ade80;
-    --red: #f87171;
+    --bg: #0a0f1e; --surface: #111827; --surface2: #1a2235; --border: rgba(255,255,255,0.07);
+    --accent-nbf: #38bdf8; --accent-castello: #f472b6; --gold: #f0b429; --text: #f1f5f9;
+    --muted: #64748b; --green: #4ade80; --red: #f87171;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding: 0 0 4rem; }
-
-  header { border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 0; position: relative; overflow: hidden; }
-  .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; max-width: 900px; margin: 0 auto; }
-  .torneo-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.5rem; }
-  h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
+  header { border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 0; max-width: 900px; margin: 0 auto; }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+  h1 { font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: 800; letter-spacing: -0.02em; }
   h1 .nbf { color: var(--accent-nbf); }
   h1 .castello { color: var(--accent-castello); }
-  .subtitle { font-size: 12px; color: var(--muted); margin-top: 0.5rem; font-family: 'DM Mono', monospace; }
-  
-  .refresh-info { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-align: right; }
+  .refresh-info { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-align: right; }
   #status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); margin-right: 5px; }
   #status-dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
-  #status-dot.error { background: var(--red); }
-
-  .tabs { display: flex; max-width: 900px; margin: 1.5rem auto 0; padding: 0 1.5rem; border-bottom: 1px solid var(--border); }
-  .tab { font-family: 'DM Mono', monospace; font-size: 11px; padding: 0.65rem 1.2rem; cursor: pointer; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.15s; text-transform: uppercase; }
+  .tabs { display: flex; margin-top: 1.5rem; border-bottom: 1px solid var(--border); }
+  .tab { font-family: 'DM Mono', monospace; font-size: 11px; padding: 0.65rem 1.2rem; cursor: pointer; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; text-transform: uppercase; }
   .tab.active { color: var(--accent-nbf); border-bottom-color: var(--accent-nbf); }
-
-  main { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+  main { max-width: 900px; margin: 1.5rem auto; padding: 0 1.5rem; }
   .panel { display: none; }
   .panel.active { display: block; }
-
-  .section-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
+  .section-label { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted); margin: 1.5rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-  .partido-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 8px; display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 1rem; }
+  .partido-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 8px; display: grid; grid-template-columns: 75px 1fr auto; align-items: center; gap: 1rem; }
   .mi-partido { border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.03); }
-  .partido-hora { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--gold); }
-  .partido-hora small { display: block; font-size: 10px; color: var(--muted); }
-  .equipo { font-size: 14px; font-weight: 600; color: #94a3b8; }
+  .partido-hora { font-family: 'DM Mono', monospace; font-size: 15px; color: var(--gold); }
+  .partido-hora small { display: block; font-size: 9px; color: var(--muted); }
+  .equipo { font-size: 13px; font-weight: 600; color: #94a3b8; }
   .equipo.destacado { color: var(--text); }
   .resultado { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--accent-nbf); font-weight: bold; }
-  .resultado.pendiente { font-size: 10px; color: var(--muted); opacity: 0.6; }
-
   .tabla-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
-  .tabla-clas { width: 100%; border-collapse: collapse; font-family: 'DM Mono', monospace; font-size: 12px; }
-  .tabla-clas th { padding: 10px; text-align: left; background: var(--surface2); color: var(--muted); font-size: 9px; }
-  .tabla-clas td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
-  .mi-equipo td { color: var(--accent-nbf); background: rgba(56,189,248,0.05); }
+  table { width: 100%; border-collapse: collapse; font-family: 'DM Mono', monospace; font-size: 12px; }
+  th { padding: 10px; text-align: left; background: var(--surface2); color: var(--muted); font-size: 9px; }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+  .mi-fila { color: var(--accent-nbf); background: rgba(56,189,248,0.05); }
 </style>
 </head>
 <body>
@@ -67,13 +48,12 @@
 <header>
   <div class="header-top">
     <div>
-      <div class="torneo-label">12 Hores Minibàsquet · Salle Reus 2026</div>
+      <div style="font-family:'DM Mono'; font-size:10px; color:var(--muted); margin-bottom:4px;">SALLE REUS 2026</div>
       <h1><span class="nbf">NBF</span> <span class="castello">Castelló</span></h1>
-      <div class="subtitle">Premini Femenino A (PFA)</div>
     </div>
     <div class="refresh-info">
-      <div><span id="status-dot"></span><span id="status-txt">cargando...</span></div>
-      <div style="margin-top:4px;">Act. <span id="last-update">—</span></div>
+      <div><span id="status-dot"></span><span id="status-txt">cargando</span></div>
+      <div id="last-update">--:--</div>
     </div>
   </div>
   <div class="tabs">
@@ -83,8 +63,8 @@
 </header>
 
 <main>
-  <div id="panel-partidos" class="panel active">Cargando partidos...</div>
-  <div id="panel-clasificacion" class="panel">Cargando clasificación...</div>
+  <div id="panel-partidos" class="panel active"></div>
+  <div id="panel-clasificacion" class="panel"></div>
 </main>
 
 <script>
@@ -92,17 +72,23 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makp
 const PROXY = 'https://corsproxy.io/?';
 const MI_EQUIPO = 'NBF CASTELLÓ A';
 
-const PARTIDOS_CALENDARIO = [
+const GRUPO = [
   { id:71, dia:'Viernes 1', hora:'12:00', l:'STADIUM CASABLANCA A', v:'NBF CASTELLÓ A' },
   { id:72, dia:'Viernes 1', hora:'15:00', l:'U10F Sant Gregori', v:'STADIUM CASABLANCA A' },
   { id:77, dia:'Sábado 2', hora:'09:00', l:'NBF CASTELLÓ A', v:'TGN' },
   { id:73, dia:'Sábado 2', hora:'10:00', l:'STADIUM CASABLANCA A', v:'ESCOLA PUIGCERVER' },
-  { id:76, dia:'Sábado 2', hora:'12:00', l:'ESCOLA PUIGCERVER', v:'NBF CASTELLÓ A' },
-  { id:74, dia:'Sábado 2', hora:'16:00', l:'TGN', v:'STADIUM CASABLANCA A' },
-  { id:75, dia:'Sábado 2', hora:'17:00', l:'NBF CASTELLÓ A', v:'U10F Sant Gregori' },
   { id:78, dia:'Sábado 2', hora:'12:00', l:'ESCOLA PUIGCERVER', v:'U10F Sant Gregori' },
+  { id:74, dia:'Sábado 2', hora:'16:00', l:'TGN', v:'STADIUM CASABLANCA A' },
+  { id:76, dia:'Sábado 2', hora:'17:00', l:'ESCOLA PUIGCERVER', v:'NBF CASTELLÓ A' },
   { id:79, dia:'Sábado 2', hora:'17:00', l:'U10F Sant Gregori', v:'TGN' },
+  { id:75, dia:'Sábado 2', hora:'19:00', l:'NBF CASTELLÓ A', v:'U10F Sant Gregori' },
   { id:80, dia:'Sábado 2', hora:'20:00', l:'TGN', v:'ESCOLA PUIGCERVER' }
+];
+
+const FINALES = [
+  { id:82, hora:'09:00', l_id:'3r', v_id:'4rt', desc:'3r i 4rt Lloc' },
+  { id:81, hora:'10:00', l_id:'1r', v_id:'2n', desc:'FINAL' },
+  { id:83, hora:'11:00', l_id:'5è', v_id:'Perd. 82', desc:'5è Lloc' }
 ];
 
 function showTab(name, el) {
@@ -112,93 +98,73 @@ function showTab(name, el) {
   document.getElementById('panel-' + name).classList.add('active');
 }
 
-async function cargarDatos() {
-  const dot = document.getElementById('status-dot');
-  const txt = document.getElementById('status-txt');
-  
+async function cargar() {
   try {
     const response = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
     const csv = await response.text();
     const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
     
     const resultados = {};
+    const nombresFinal = {};
+
     rows.forEach(row => {
       const id = parseInt(row[0]);
       if(!isNaN(id)) {
-        // Busca los dos primeros números en la fila del partido
         const scores = row.slice(1, 6).filter(v => v !== "" && !isNaN(v));
         if (scores.length >= 2) resultados[id] = { l: scores[0], v: scores[1] };
       }
+      if (row[0] === 'PFA' && row[2]) nombresFinal[row[1]] = row[2].toUpperCase();
     });
 
-    renderPartidos(resultados);
-    renderClasificacion(resultados);
-    
-    dot.className = 'ok';
-    txt.textContent = 'en vivo';
-    document.getElementById('last-update').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    render(resultados, nombresFinal);
+    document.getElementById('status-dot').className = 'ok';
+    document.getElementById('status-txt').innerText = 'en vivo';
+    document.getElementById('last-update').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   } catch (e) {
-    dot.className = 'error';
-    txt.textContent = 'error red';
+    document.getElementById('status-dot').className = 'error';
   }
 }
 
-function renderPartidos(res) {
-  let html = '';
-  let diaAct = '';
-  PARTIDOS_CALENDARIO.forEach(p => {
-    if(p.dia !== diaAct) {
-      diaAct = p.dia;
-      html += `<div class="section-label">${diaAct} de Mayo</div>`;
-    }
-    const r = res[p.id];
+function render(res, nombres) {
+  let htmlP = ''; let diaAct = '';
+  GRUPO.forEach(p => {
+    if(p.dia !== diaAct) { diaAct = p.dia; htmlP += `<div class="section-label">${diaAct} Mayo</div>`; }
     const esMio = p.l === MI_EQUIPO || p.v === MI_EQUIPO;
-    html += `
-      <div class="partido-card ${esMio ? 'mi-partido' : ''}">
-        <div class="partido-hora">${p.hora}<small>#${p.id}</small></div>
-        <div>
-          <div class="equipo ${p.l === MI_EQUIPO ? 'destacado' : ''}">${p.l}</div>
-          <div class="equipo ${p.v === MI_EQUIPO ? 'destacado' : ''}">${p.v}</div>
-        </div>
-        <div class="resultado ${!r ? 'pendiente' : ''}">${r ? r.l + ' - ' + r.v : 'pendiente'}</div>
-      </div>`;
+    htmlP += card(p.hora, p.id, p.l, p.v, res[p.id], esMio, '');
   });
-  document.getElementById('panel-partidos').innerHTML = html;
-}
+  htmlP += `<div class="section-label" style="color:var(--gold)">Domingo 3 Mayo · Finales</div>`;
+  FINALES.forEach(f => {
+    const eqL = nombres[f.l_id] || f.l_id; const eqV = nombres[f.v_id] || f.v_id;
+    htmlP += card(f.hora, f.id, eqL, eqV, res[f.id], eqL === MI_EQUIPO || eqV === MI_EQUIPO, f.desc);
+  });
+  document.getElementById('panel-partidos').innerHTML = htmlP;
 
-function renderClasificacion(res) {
   const stats = {};
-  const equipos = [...new Set(PARTIDOS_CALENDARIO.flatMap(p => [p.l, p.v]))];
+  const equipos = [...new Set(GRUPO.flatMap(p => [p.l, p.v]))];
   equipos.forEach(e => stats[e] = { pj:0, pg:0, pp:0, pf:0, pc:0, pts:0 });
-
   Object.keys(res).forEach(id => {
-    const p = PARTIDOS_CALENDARIO.find(c => c.id == id);
+    const p = GRUPO.find(c => c.id == id);
     if(p) {
-      const r = res[id];
-      const sl = parseInt(r.l), sv = parseInt(r.v);
-      stats[p.l].pj++; stats[p.v].pj++;
-      stats[p.l].pf += sl; stats[p.l].pc += sv;
-      stats[p.v].pf += sv; stats[p.v].pc += sl;
-      if(sl > sv) { stats[p.l].pg++; stats[p.l].pts+=2; stats[p.v].pp++; stats[p.v].pts+=1; }
-      else { stats[p.v].pg++; stats[p.v].pts+=2; stats[p.l].pp++; stats[p.l].pts+=1; }
+      const r = res[id]; const sl = parseInt(r.l), sv = parseInt(r.v);
+      stats[p.l].pj++; stats[p.v].pj++; stats[p.l].pf += sl; stats[p.l].pc += sv; stats[p.v].pf += sv; stats[p.v].pc += sl;
+      if(sl > sv) { stats[p.l].pg++; stats[p.l].pts+=2; stats[p.v].pts+=1; } else { stats[p.v].pg++; stats[p.v].pts+=2; stats[p.l].pts+=1; }
     }
   });
-
   const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc));
-
-  let html = `<div class="tabla-wrap"><table class="tabla-clas">
-    <thead><tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
+  let htmlC = `<div class="tabla-wrap"><table><thead><tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
   sorted.forEach(([nom, s]) => {
-    html += `<tr class="${nom === MI_EQUIPO ? 'mi-equipo' : ''}">
-      <td>${nom}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf - s.pc}</td>
-    </tr>`;
+    htmlC += `<tr class="${nom === MI_EQUIPO ? 'mi-fila' : ''}"><td>${nom}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf - s.pc}</td></tr>`;
   });
-  html += `</tbody></table></div>`;
-  document.getElementById('panel-clasificacion').innerHTML = html;
+  document.getElementById('panel-clasificacion').innerHTML = htmlC + `</tbody></table></div>`;
 }
 
-cargarDatos();
-setInterval(cargarDatos, 60000);
+function card(hora, id, l, v, r, mio, desc) {
+  return `<div class="partido-card ${mio ? 'mi-partido' : ''}">
+    <div class="partido-hora">${hora}<small>#${id}</small></div>
+    <div>${desc ? `<div style="font-size:8px;color:var(--gold);font-family:'DM Mono'">${desc}</div>`:''}<div class="equipo ${l===MI_EQUIPO?'destacado':''}">${l}</div><div class="equipo ${v===MI_EQUIPO?'destacado':''}">${v}</div></div>
+    <div class="resultado">${r ? r.l+'-'+r.v : 'vs'}</div></div>`;
+}
+cargar(); setInterval(cargar, 60000);
 </script>
 </body>
 </html>
