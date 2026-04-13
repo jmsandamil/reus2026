@@ -72,23 +72,27 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makp
 const PROXY = 'https://corsproxy.io/?';
 const MI_EQUIPO = 'NBF CASTELLÓ A';
 
+// LISTADO VERIFICADO SEGÚN EL CALENDARIO OFICIAL PROPORCIONADO
 const GRUPO = [
+  // Viernes 1/5
   { id:71, dia:'Viernes 1', hora:'12:00', l:'STADIUM CASABLANCA A', v:'NBF CASTELLÓ A' },
   { id:72, dia:'Viernes 1', hora:'15:00', l:'U10F Sant Gregori', v:'STADIUM CASABLANCA A' },
+  { id:76, dia:'Viernes 1', hora:'17:00', l:'ESCOLA PUIGCERVER', v:'NBF CASTELLÓ A' },
+  
+  // Sábado 2/5
   { id:77, dia:'Sábado 2', hora:'09:00', l:'NBF CASTELLÓ A', v:'TGN' },
   { id:73, dia:'Sábado 2', hora:'10:00', l:'STADIUM CASABLANCA A', v:'ESCOLA PUIGCERVER' },
   { id:78, dia:'Sábado 2', hora:'12:00', l:'ESCOLA PUIGCERVER', v:'U10F Sant Gregori' },
   { id:74, dia:'Sábado 2', hora:'16:00', l:'TGN', v:'STADIUM CASABLANCA A' },
-  { id:76, dia:'Sábado 2', hora:'17:00', l:'ESCOLA PUIGCERVER', v:'NBF CASTELLÓ A' },
   { id:79, dia:'Sábado 2', hora:'17:00', l:'U10F Sant Gregori', v:'TGN' },
   { id:75, dia:'Sábado 2', hora:'19:00', l:'NBF CASTELLÓ A', v:'U10F Sant Gregori' },
   { id:80, dia:'Sábado 2', hora:'20:00', l:'TGN', v:'ESCOLA PUIGCERVER' }
 ];
 
 const FINALES = [
-  { id:82, hora:'09:00', l_id:'3r', v_id:'4rt', desc:'3r i 4rt Lloc' },
+  { id:82, hora:'09:00', l_id:'3r', v_id:'4rt', desc:'3er y 4º Puesto' },
   { id:81, hora:'10:00', l_id:'1r', v_id:'2n', desc:'FINAL' },
-  { id:83, hora:'11:00', l_id:'5è', v_id:'Perd. 82', desc:'5è Lloc' }
+  { id:83, hora:'11:00', l_id:'5è', v_id:'Perd. 82', desc:'5º Puesto' }
 ];
 
 function showTab(name, el) {
@@ -122,20 +126,22 @@ async function cargar() {
     document.getElementById('last-update').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   } catch (e) {
     document.getElementById('status-dot').className = 'error';
+    document.getElementById('status-txt').innerText = 'error';
   }
 }
 
 function render(res, nombres) {
   let htmlP = ''; let diaAct = '';
   GRUPO.forEach(p => {
-    if(p.dia !== diaAct) { diaAct = p.dia; htmlP += `<div class="section-label">${diaAct} Mayo</div>`; }
+    if(p.dia !== diaAct) { diaAct = p.dia; htmlP += `<div class="section-label">${diaAct} de Mayo</div>`; }
     const esMio = p.l === MI_EQUIPO || p.v === MI_EQUIPO;
     htmlP += card(p.hora, p.id, p.l, p.v, res[p.id], esMio, '');
   });
-  htmlP += `<div class="section-label" style="color:var(--gold)">Domingo 3 Mayo · Finales</div>`;
+  htmlP += `<div class="section-label" style="color:var(--gold)">Domingo 3 de Mayo · Fase Final</div>`;
   FINALES.forEach(f => {
     const eqL = nombres[f.l_id] || f.l_id; const eqV = nombres[f.v_id] || f.v_id;
-    htmlP += card(f.hora, f.id, eqL, eqV, res[f.id], eqL === MI_EQUIPO || eqV === MI_EQUIPO, f.desc);
+    const esMio = eqL.includes('NBF') || eqV.includes('NBF');
+    htmlP += card(f.hora, f.id, eqL, eqV, res[f.id], esMio, f.desc);
   });
   document.getElementById('panel-partidos').innerHTML = htmlP;
 
@@ -147,7 +153,8 @@ function render(res, nombres) {
     if(p) {
       const r = res[id]; const sl = parseInt(r.l), sv = parseInt(r.v);
       stats[p.l].pj++; stats[p.v].pj++; stats[p.l].pf += sl; stats[p.l].pc += sv; stats[p.v].pf += sv; stats[p.v].pc += sl;
-      if(sl > sv) { stats[p.l].pg++; stats[p.l].pts+=2; stats[p.v].pts+=1; } else { stats[p.v].pg++; stats[p.v].pts+=2; stats[p.l].pts+=1; }
+      if(sl > sv) { stats[p.l].pg++; stats[p.l].pts+=2; stats[p.v].pts+=1; } 
+      else { stats[p.v].pg++; stats[p.v].pts+=2; stats[p.l].pts+=1; }
     }
   });
   const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc));
