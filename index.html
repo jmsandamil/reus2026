@@ -117,23 +117,32 @@ async function load(){
 }
 
 
-// ================= PARSER =================
 function parse(rows){
 
   const partidos = [];
 
+  const IDS = new Set([
+    "71","72","73","74","75","76","77","78","79","80","81","82","83"
+  ]);
+
+  const isHour = v => /\d{1,2}:\d{2}/.test(v);
+  const isNoise = v =>
+    !v ||
+    v.includes("PFA") ||
+    v.includes("CLASS") ||
+    v.includes("de juny") ||
+    isHour(v);
+
   const isTeam = v =>
     v &&
     isNaN(v) &&
-    v.length > 2 &&
-    !v.includes("PFA") &&
-    !v.includes("CLASS");
+    v.length > 3 &&
+    !isNoise(v);
 
   const findHora = (f)=>{
     for(let i=f;i>=0;i--){
       for(let c=0;c<rows[i].length;c++){
-        if(rows[i][c] && rows[i][c].match(/\d{1,2}:\d{2}/))
-          return rows[i][c];
+        if(isHour(rows[i][c])) return rows[i][c];
       }
     }
     return "--:--";
@@ -141,32 +150,35 @@ function parse(rows){
 
   const findPista = (f,c)=>{
     for(let i=f;i>=0;i--){
-      if(rows[i][c] && rows[i][c].includes("P"))
-        return rows[i][c];
+      const v = rows[i][c];
+      if(v && v.includes("P") && v.length<=5) return v;
     }
     return "P?";
   };
 
-
   for(let f=0;f<rows.length;f++){
     for(let c=0;c<rows[f].length;c++){
 
-      const v = (rows[f][c]||"").trim();
+      const val = (rows[f][c]||"").trim();
 
-      if(!IDS.has(v)) continue;
+      if(!IDS.has(val)) continue;
 
       let teams = [];
 
-      for(let i=-2;i<=2;i++){
-        const r = rows[f+i];
-        if(!r) continue;
+      // buscar SOLO equipos reales cerca del ID
+      for(let i=-3;i<=3;i++){
+        const row = rows[f+i];
+        if(!row) continue;
 
-        r.forEach(x=>{
-          if(isTeam(x)) teams.push(x);
+        row.forEach(v=>{
+          if(isTeam(v)) teams.push(v);
         });
       }
 
-      if(teams.length<2) continue;
+      // quitar duplicados
+      teams = [...new Set(teams)];
+
+      if(teams.length < 2) continue;
 
       const hora = findHora(f);
       const pista = findPista(f,c);
@@ -175,11 +187,11 @@ function parse(rows){
       const resV = rows[f]?.[c+2] || "";
 
       partidos.push({
-        id:v,
+        id: val,
         hora,
         pista,
-        l:teams[0],
-        v:teams[1],
+        l: teams[0],
+        v: teams[1],
         resL,
         resV
       });
