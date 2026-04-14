@@ -115,48 +115,59 @@ async function load(){
 }
 
 
-// ================= PARSER (TU LÓGICA REAL) =================
 function parse(rows){
 
+  const IDS = new Set(["71","72","73","74","75","76","77","78","79","80","81","82","83"]);
   const partidos = [];
 
-  function cell(r,c){
-    return rows[r]?.[c]?.trim() || "";
-  }
+  const clean = v => (v || "").toString().trim();
 
-  function isHour(v){
-    return /\d{1,2}:\d{2}/.test(v);
+  const isHour = v => /\d{1,2}:\d{2}/.test(v);
+
+  function findHour(r){
+    for(let i=r;i>=0;i--){
+      for(let c=0;c<rows[i].length;c++){
+        if(isHour(rows[i][c])) return rows[i][c];
+      }
+    }
+    return "--:--";
   }
 
   for(let r=0;r<rows.length;r++){
     for(let c=0;c<rows[r].length;c++){
 
-      const val = cell(r,c);
+      const val = clean(rows[r][c]);
 
       if(!IDS.has(val)) continue;
 
-      const id = val;
+      // 🕒 hora
+      const hora = findHour(r);
 
-      // 🕒 HORA (columna A)
-      let hora = cell(r,0);
-      if(!isHour(hora)) hora = "--:--";
+      // 👥 equipos (buscar en toda la fila)
+      const fila = rows[r].map(clean);
 
-      // 🏷️ buscar equipos en fila actual (a la derecha)
-      let eq1 = cell(r,c+1);
-      let eq2 = cell(r,c+2);
+      const equipos = fila.filter(v =>
+        v &&
+        isNaN(v) &&
+        v.length > 2 &&
+        !v.includes("PFA") &&
+        !isHour(v)
+      );
 
-      if(!eq1 || !eq2) continue;
-      if(eq1 === "PFA" || eq2 === "PFA") continue;
+      if(equipos.length < 2) continue;
 
-      // 📊 resultado fila inferior
-      let resL = cell(r+1,c+1);
-      let resV = cell(r+1,c+2);
+      const eq1 = equipos[0];
+      const eq2 = equipos[1];
+
+      // 📊 resultado debajo
+      const resL = clean(rows[r+1]?.[c+1]);
+      const resV = clean(rows[r+1]?.[c+2]);
 
       partidos.push({
-        id,
+        id: val,
         hora,
-        l:eq1,
-        v:eq2,
+        l: eq1,
+        v: eq2,
         resL,
         resV
       });
