@@ -13,25 +13,14 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding: 0 0 4rem; }
-  
   header { border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 0; max-width: 900px; margin: 0 auto; }
   .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
   h1 { font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: 800; letter-spacing: -0.02em; }
   h1 span { color: var(--accent-nbf); }
-  
   .refresh-info { text-align: right; }
-  .btn-check { 
-    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-    font-family: 'DM Mono', monospace; font-size: 10px; padding: 6px 12px; border-radius: 4px;
-    cursor: pointer; transition: 0.2s; margin-top: 5px;
-  }
-  .btn-check:hover { background: var(--border); }
-
-  #alerta-cambio { 
-    display: none; background: rgba(248, 113, 113, 0.15); border: 1px solid var(--red); 
-    color: var(--red); padding: 1rem; border-radius: 8px; margin: 1.5rem 1.5rem 0;
-    font-size: 13px; font-family: 'DM Mono', monospace;
-  }
+  .btn-check { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 10px; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px; }
+  
+  #alerta-cambio { display: none; background: rgba(248, 113, 113, 0.15); border: 1px solid var(--red); color: var(--red); padding: 1rem; border-radius: 8px; margin: 1.5rem 1.5rem 0; font-size: 13px; font-family: 'DM Mono', monospace; }
 
   .tabs { display: flex; margin-top: 1.5rem; border-bottom: 1px solid var(--border); }
   .tab { font-family: 'DM Mono', monospace; font-size: 11px; padding: 0.65rem 1.2rem; cursor: pointer; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; text-transform: uppercase; }
@@ -40,7 +29,6 @@
   main { max-width: 900px; margin: 1.5rem auto; padding: 0 1.5rem; }
   .panel { display: none; }
   .panel.active { display: block; }
-
   .section-label { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted); margin: 1.5rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
@@ -49,7 +37,6 @@
   .partido-hora { font-family: 'DM Mono', monospace; font-size: 15px; color: var(--gold); }
   .hora-cambiada { color: var(--red) !important; font-weight: bold; }
   .pista-tag { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; }
-
   .equipo { font-size: 13px; font-weight: 600; color: #94a3b8; }
   .equipo.destacado { color: var(--text); }
   .resultado { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--accent-nbf); font-weight: bold; }
@@ -74,7 +61,7 @@
         <span id="status-dot" style="display:inline-block; width:6px; height:6px; border-radius:50%; background:gray;"></span>
         <span id="status-txt">conectando</span> | <span id="last-update">--:--</span>
       </div>
-      <button class="btn-check" onclick="cargar(true)">VERIFICAR HORARIOS</button>
+      <button class="btn-check" onclick="cargar(true)">REINTENTAR LECTURA</button>
     </div>
   </div>
   <div class="tabs">
@@ -84,12 +71,12 @@
 </header>
 
 <div id="alerta-cambio">
-  <strong>⚠️ CAMBIO DETECTADO</strong><br>
-  El horario en el Excel no coincide con el oficial. Revisa los datos en rojo.
+  <strong>⚠️ CAMBIO DETECTADO / ERROR DE LECTURA</strong><br>
+  No se encuentran algunos partidos en sus casillas habituales o los horarios han cambiado.
 </div>
 
 <main>
-  <div id="panel-partidos" class="panel active">Cargando...</div>
+  <div id="panel-partidos" class="panel active">Buscando partidos en el Excel...</div>
   <div id="panel-clasificacion" class="panel"></div>
 </main>
 
@@ -98,18 +85,8 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makp
 const PROXY = 'https://corsproxy.io/?';
 const MI_EQUIPO = 'NBF CASTELLÓ A';
 
-// UBICACIONES SEGÚN TU LISTADO
-const PISTAS = {
-  71: "PLOMS 1", 72: "PLOMS 1", 76: "BARRI GAUDÍ", // Viernes
-  77: "PLOMS 1", 73: "PLOMS 2", 78: "PLOMS 1", 74: "PLOMS 2", 79: "PLOMS 3", 75: "PLOMS 1", 80: "PLOMS 2", // Sáb
-  81: "PLOMS 1", 82: "PLOMS 1", 83: "PLOMS 2" // Dom
-};
-
-const REFERENCIA = {
-  71: "12:00", 72: "15:00", 76: "17:00", 
-  77: "09:00", 73: "10:00", 78: "12:00", 74: "16:00", 79: "17:00", 75: "19:00", 80: "20:00"
-};
-
+const PISTAS = { 71:"PLOMS 1", 72:"PLOMS 1", 76:"BARRI GAUDÍ", 77:"PLOMS 1", 73:"PLOMS 2", 78:"PLOMS 1", 74:"PLOMS 2", 79:"PLOMS 3", 75:"PLOMS 1", 80:"PLOMS 2", 81:"PLOMS 1", 82:"PLOMS 1", 83:"PLOMS 2" };
+const REFERENCIA = { 71:"12:00", 72:"15:00", 76:"17:00", 77:"09:00", 73:"10:00", 78:"12:00", 74:"16:00", 79:"17:00", 75:"19:00", 80:"20:00" };
 const ESTRUCTURA = [
   { dia: 'Viernes 1', ids: [71, 72, 76] },
   { dia: 'Sábado 2', ids: [77, 73, 78, 74, 79, 75, 80] },
@@ -132,28 +109,54 @@ async function cargar(esManual = false) {
     const csv = await response.text();
     const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
     
-    let enc = {}; let nombresFinal = {}; let huboCambio = false;
+    let enc = {}; let nombresFinal = {}; let cambiosDetectados = 0;
 
+    // BUSCADOR INTELIGENTE: Rastrea cada celda del Excel
     rows.forEach(row => {
-      const id = parseInt(row[0]);
-      if (!isNaN(id)) {
-        enc[id] = { id, hora: row[1], l: row[2], v: row[3], resL: row[4], resV: row[5] };
-        if (REFERENCIA[id] && row[1] !== REFERENCIA[id]) huboCambio = true;
+      // 1. Buscamos si el ID del partido está en CUALQUIER columna (normalmente es la primera)
+      row.forEach((cell, index) => {
+        const id = parseInt(cell);
+        if (!isNaN(id) && (id >= 70 && id <= 85)) {
+          // Si encontramos un ID, intentamos extraer los datos de esa fila
+          // Asumimos: Hora está 1 a la derecha, Local 2 a la derecha, Visitante 3 a la derecha...
+          enc[id] = {
+            id: id,
+            hora: row[index + 1] || '--:--',
+            l: row[index + 2] || 'TBD',
+            v: row[index + 3] || 'TBD',
+            resL: row[index + 4],
+            resV: row[index + 5]
+          };
+          if (REFERENCIA[id] && enc[id].hora !== REFERENCIA[id]) cambiosDetectados++;
+        }
+      });
+
+      // 2. Captura de nombres de finales
+      if (row.includes('PFA')) {
+        const idx = row.indexOf('PFA');
+        if (row[idx+2]) nombresFinal[row[idx+1]] = row[idx+2].toUpperCase();
       }
-      if (row[0] === 'PFA' && row[2]) nombresFinal[row[1]] = row[2].toUpperCase();
     });
 
-    if (esManual) alert(huboCambio ? "⚠️ ¡Atención! Hay cambios en los horarios respecto al plan original." : "✅ Todo correcto. Los horarios coinciden con el plan oficial.");
-
-    document.getElementById('alerta-cambio').style.display = huboCambio ? 'block' : 'none';
-    renderPartidos(enc, nombresFinal);
-    renderClasificacion(enc);
+    // Si no encontramos ni un solo partido, hay un error de lectura grave
+    const numEncontrados = Object.keys(enc).length;
+    document.getElementById('alerta-cambio').style.display = (cambiosDetectados > 0 || numEncontrados === 0) ? 'block' : 'none';
+    
+    if (numEncontrados === 0) {
+      document.getElementById('panel-partidos').innerHTML = "<div style='color:var(--red); padding:2rem; text-align:center;'>Error: El Excel ha cambiado de formato y no se encuentran los IDs de los partidos.</div>";
+    } else {
+      renderPartidos(enc, nombresFinal);
+      renderClasificacion(enc);
+    }
 
     dot.style.background = "#4ade80";
     document.getElementById('status-txt').innerText = "en vivo";
     document.getElementById('last-update').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    if(esManual) alert(numEncontrados > 0 ? "Actualizado: " + numEncontrados + " partidos leídos." : "Error: No se han encontrado partidos.");
+
   } catch (e) {
     dot.style.background = "#f87171";
+    console.error(e);
   }
 }
 
@@ -163,18 +166,13 @@ function renderPartidos(enc, nombres) {
     html += `<div class="section-label">${seccion.dia}</div>`;
     seccion.ids.forEach(id => {
       const p = enc[id]; if (!p) return;
-      
       const nomL = nombres[p.l] || p.l;
       const nomV = nombres[p.v] || p.v;
       const esMio = nomL.includes('NBF') || nomV.includes('NBF');
       const esCambio = REFERENCIA[id] && p.hora !== REFERENCIA[id];
-
       html += `
         <div class="partido-card ${esMio ? 'mi-partido' : ''}">
-          <div class="partido-hora ${esCambio ? 'hora-cambiada' : ''}">
-            ${p.hora}
-            <span class="pista-tag">${PISTAS[id] || 'Pista TBD'}</span>
-          </div>
+          <div class="partido-hora ${esCambio ? 'hora-cambiada' : ''}">${p.hora}<span class="pista-tag">${PISTAS[id] || ''}</span></div>
           <div>
             <div class="equipo ${nomL === MI_EQUIPO ? 'destacado' : ''}">${nomL}</div>
             <div class="equipo ${nomV === MI_EQUIPO ? 'destacado' : ''}">${nomV}</div>
@@ -189,8 +187,9 @@ function renderPartidos(enc, nombres) {
 function renderClasificacion(enc) {
   const stats = {};
   Object.values(enc).filter(p => p.id >= 71 && p.id <= 80).forEach(p => {
+    if (p.l === 'TBD' || p.v === 'TBD') return;
     [p.l, p.v].forEach(eq => { if(!stats[eq]) stats[eq] = {pj:0, pg:0, pf:0, pc:0, pts:0}; });
-    if(p.resL && p.resV) {
+    if(p.resL && p.resV && !isNaN(parseInt(p.resL))) {
       const rl = parseInt(p.resL), rv = parseInt(p.resV);
       stats[p.l].pj++; stats[p.v].pj++; stats[p.l].pf += rl; stats[p.l].pc += rv; stats[p.v].pf += rv; stats[p.v].pc += rl;
       if(rl > rv) { stats[p.l].pg++; stats[p.l].pts += 2; stats[p.v].pts += 1; }
