@@ -1,3 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBF Castelló · Monitor</title>
+
+<style>
+:root {
+  --bg:#0a0f1e; --surface:#111827; --border:rgba(255,255,255,0.07);
+  --accent:#38bdf8; --text:#f1f5f9; --muted:#64748b;
+}
+body {
+  background:var(--bg); color:var(--text);
+  font-family:sans-serif; margin:0; padding:20px;
+}
+h1 { color:var(--accent); }
+
+.partido-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:10px;
+  display:grid;
+  grid-template-columns:80px 1fr auto;
+  gap:10px;
+}
+.partido-hora { font-weight:bold; color:#f0b429; }
+.equipo { font-size:14px; }
+.resultado { font-weight:bold; }
+
+.tabla-wrap {
+  margin-top:20px;
+  background:var(--surface);
+  border-radius:10px;
+  overflow:hidden;
+}
+table { width:100%; border-collapse:collapse; }
+td,th { padding:10px; border-bottom:1px solid var(--border); }
+th { color:var(--muted); font-size:12px; }
+</style>
+</head>
+
+<body>
+
+<h1>NBF Castelló</h1>
+
+<div id="status">Cargando...</div>
+
+<h2>Partidos</h2>
+<div id="panel-partidos">Cargando datos...</div>
+
+<h2>Clasificación</h2>
+<div id="panel-clasificacion"></div>
+
+
 <script>
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1972783032";
 const PROXY = "https://corsproxy.io/?";
@@ -17,13 +74,12 @@ async function cargar() {
 
   } catch (e) {
     console.error(e);
-    document.getElementById("panel-partidos").innerHTML = "<div style='color:red'>Error cargando datos</div>";
     setStatus("ERROR");
   }
 }
 
 
-// 🔍 Parser inteligente (busca patrones reales)
+// 🔍 Detecta partidos en el Excel
 function parsear(rows) {
   const partidos = [];
 
@@ -32,20 +88,19 @@ function parsear(rows) {
 
       const val = rows[f][c];
 
-      // detectar IDs tipo 71,72...
       if (!isNaN(parseInt(val)) && val.length <= 3) {
 
         const hora = buscarHora(rows, f);
         const pista = buscarPista(rows, f, c);
 
-        const eqL = rows[f - 1]?.[c + 1] || "TBD";
-        const eqV = rows[f - 1]?.[c + 2] || "TBD";
+        const eqL = rows[f - 1]?.[c + 1] || "";
+        const eqV = rows[f - 1]?.[c + 2] || "";
 
         const resL = rows[f]?.[c + 1] || "";
         const resV = rows[f]?.[c + 2] || "";
 
-        if (eqL !== "TBD" && eqV !== "TBD") {
-          partidos.push({hora, pista, l: eqL, v: eqV, resL, resV});
+        if (eqL && eqV) {
+          partidos.push({hora, pista, l:eqL, v:eqV, resL, resV});
         }
       }
     }
@@ -55,7 +110,7 @@ function parsear(rows) {
 }
 
 
-// 🧠 buscar hora real
+// 🧠 Buscar hora hacia arriba
 function buscarHora(rows, f) {
   for (let i = f; i >= 0; i--) {
     const cell = rows[i][0];
@@ -65,7 +120,7 @@ function buscarHora(rows, f) {
 }
 
 
-// 🧠 buscar pista real
+// 🧠 Buscar pista
 function buscarPista(rows, f, c) {
   for (let i = f; i >= 0; i--) {
     const cell = rows[i][c];
@@ -75,19 +130,19 @@ function buscarPista(rows, f, c) {
 }
 
 
-// 🎨 render
+// 🎨 Render partidos
 function render(partidos) {
+
+  const panelP = document.getElementById("panel-partidos");
+  if (!panelP) return;
 
   let html = "";
 
   partidos.forEach(p => {
-    const esMio = p.l.includes("NBF") || p.v.includes("NBF");
-
     html += `
-    <div class="partido-card ${esMio ? 'mi-partido' : ''}">
+    <div class="partido-card">
       <div class="partido-hora">
-        <div>${p.hora}</div>
-        <div style="font-size:9px;color:var(--muted)">${p.pista}</div>
+        ${p.hora}<br><small>${p.pista}</small>
       </div>
       <div>
         <div class="equipo">${p.l}</div>
@@ -99,14 +154,15 @@ function render(partidos) {
     </div>`;
   });
 
-  document.getElementById("panel-partidos").innerHTML = html;
+  panelP.innerHTML = html;
 
   generarClasificacion(partidos);
 }
 
 
-// 📊 clasificación
+// 📊 Clasificación
 function generarClasificacion(partidos) {
+
   const stats = {};
 
   partidos.forEach(p => {
@@ -118,7 +174,6 @@ function generarClasificacion(partidos) {
       const rv = parseInt(p.resV);
 
       stats[p.l].pj++; stats[p.v].pj++;
-
       stats[p.l].pf += rl; stats[p.l].pc += rv;
       stats[p.v].pf += rv; stats[p.v].pc += rl;
 
@@ -130,26 +185,38 @@ function generarClasificacion(partidos) {
     }
   });
 
-  let html = `<div class="tabla-wrap"><table><thead>
-  <tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr>
-  </thead><tbody>`;
+  const panelC = document.getElementById("panel-clasificacion");
+  if (!panelC) return;
+
+  let html = `<div class="tabla-wrap"><table>
+  <thead><tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
 
   Object.entries(stats).forEach(([n,s]) => {
-    html += `<tr><td>${n}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf-s.pc}</td></tr>`;
+    html += `<tr>
+      <td>${n}</td>
+      <td>${s.pj}</td>
+      <td>${s.pg}</td>
+      <td>${s.pts}</td>
+      <td>${s.pf - s.pc}</td>
+    </tr>`;
   });
 
   html += "</tbody></table></div>";
 
-  document.getElementById("panel-clasificacion").innerHTML = html;
+  panelC.innerHTML = html;
 }
 
 
 // estado
 function setStatus(txt) {
-  const el = document.getElementById("status-txt");
+  const el = document.getElementById("status");
   if (el) el.innerText = txt;
 }
+
 
 cargar();
 setInterval(cargar, 60000);
 </script>
+
+</body>
+</html>
