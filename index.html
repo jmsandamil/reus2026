@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Monitor 12H Reus</title>
+<title>NBF Castelló · Monitor Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0a0f1e; --surface: #111827; --surface2: #1a2235; --border: rgba(255,255,255,0.07);
-    --accent-nbf: #38bdf8; --accent-castello: #f472b6; --gold: #f0b429; --text: #f1f5f9;
+    --accent-nbf: #38bdf8; --gold: #f0b429; --text: #f1f5f9;
     --muted: #64748b; --green: #4ade80; --red: #f87171;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,17 +17,20 @@
   header { border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 0; max-width: 900px; margin: 0 auto; }
   .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
   h1 { font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: 800; letter-spacing: -0.02em; }
-  h1 .nbf { color: var(--accent-nbf); }
-  h1 .castello { color: var(--accent-castello); }
+  h1 span { color: var(--accent-nbf); }
   
-  .refresh-info { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-align: right; }
-  #status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); margin-right: 5px; }
-  #status-dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
-  
+  .refresh-info { text-align: right; }
+  .btn-check { 
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 10px; padding: 6px 12px; border-radius: 4px;
+    cursor: pointer; transition: 0.2s; margin-top: 5px;
+  }
+  .btn-check:hover { background: var(--border); }
+
   #alerta-cambio { 
     display: none; background: rgba(248, 113, 113, 0.15); border: 1px solid var(--red); 
     color: var(--red); padding: 1rem; border-radius: 8px; margin: 1.5rem 1.5rem 0;
-    font-size: 13px; font-family: 'DM Mono', monospace; line-height: 1.4;
+    font-size: 13px; font-family: 'DM Mono', monospace;
   }
 
   .tabs { display: flex; margin-top: 1.5rem; border-bottom: 1px solid var(--border); }
@@ -41,10 +44,12 @@
   .section-label { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted); margin: 1.5rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-  .partido-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 8px; display: grid; grid-template-columns: 80px 1fr auto; align-items: center; gap: 1rem; }
+  .partido-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 8px; display: grid; grid-template-columns: 85px 1fr auto; align-items: center; gap: 1rem; }
   .mi-partido { border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.05); }
   .partido-hora { font-family: 'DM Mono', monospace; font-size: 15px; color: var(--gold); }
   .hora-cambiada { color: var(--red) !important; font-weight: bold; }
+  .pista-tag { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; }
+
   .equipo { font-size: 13px; font-weight: 600; color: #94a3b8; }
   .equipo.destacado { color: var(--text); }
   .resultado { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--accent-nbf); font-weight: bold; }
@@ -62,11 +67,14 @@
   <div class="header-top">
     <div>
       <div style="font-family:'DM Mono'; font-size:10px; color:var(--muted); margin-bottom:4px;">SALLE REUS 2026</div>
-      <h1><span class="nbf">NBF</span> <span class="castello">Castelló</span></h1>
+      <h1><span>NBF</span> Castelló</h1>
     </div>
     <div class="refresh-info">
-      <div><span id="status-dot"></span><span id="status-txt">cargando</span></div>
-      <div id="last-update">--:--</div>
+      <div style="font-family:'DM Mono'; font-size:10px; color:var(--muted);">
+        <span id="status-dot" style="display:inline-block; width:6px; height:6px; border-radius:50%; background:gray;"></span>
+        <span id="status-txt">conectando</span> | <span id="last-update">--:--</span>
+      </div>
+      <button class="btn-check" onclick="cargar(true)">VERIFICAR HORARIOS</button>
     </div>
   </div>
   <div class="tabs">
@@ -76,12 +84,12 @@
 </header>
 
 <div id="alerta-cambio">
-  <strong>⚠️ CAMBIO DE ÚLTIMA HORA DETECTADO</strong><br>
-  La organización ha movido uno o varios partidos en el Excel. Revisa los horarios en rojo.
+  <strong>⚠️ CAMBIO DETECTADO</strong><br>
+  El horario en el Excel no coincide con el oficial. Revisa los datos en rojo.
 </div>
 
 <main>
-  <div id="panel-partidos" class="panel active"></div>
+  <div id="panel-partidos" class="panel active">Cargando...</div>
   <div id="panel-clasificacion" class="panel"></div>
 </main>
 
@@ -90,17 +98,22 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makp
 const PROXY = 'https://corsproxy.io/?';
 const MI_EQUIPO = 'NBF CASTELLÓ A';
 
-// REFERENCIA ORIGINAL PARA EL SISTEMA DE ALERTAS
-const REFERENCIA = {
-  71: "12:00", 72: "15:00", 76: "17:00", // Viernes
-  77: "09:00", 73: "10:00", 78: "12:00", 74: "16:00", 79: "17:00", 75: "19:00", 80: "20:00" // Sábado
+// UBICACIONES SEGÚN TU LISTADO
+const PISTAS = {
+  71: "PLOMS 1", 72: "PLOMS 1", 76: "BARRI GAUDÍ", // Viernes
+  77: "PLOMS 1", 73: "PLOMS 2", 78: "PLOMS 1", 74: "PLOMS 2", 79: "PLOMS 3", 75: "PLOMS 1", 80: "PLOMS 2", // Sáb
+  81: "PLOMS 1", 82: "PLOMS 1", 83: "PLOMS 2" // Dom
 };
 
-// ORDEN VISUAL POR DÍAS
+const REFERENCIA = {
+  71: "12:00", 72: "15:00", 76: "17:00", 
+  77: "09:00", 73: "10:00", 78: "12:00", 74: "16:00", 79: "17:00", 75: "19:00", 80: "20:00"
+};
+
 const ESTRUCTURA = [
   { dia: 'Viernes 1', ids: [71, 72, 76] },
   { dia: 'Sábado 2', ids: [77, 73, 78, 74, 79, 75, 80] },
-  { dia: 'Domingo 3 (Fase Final)', ids: [82, 81, 83] }
+  { dia: 'Domingo 3 (Finales)', ids: [82, 81, 83] }
 ];
 
 function showTab(name, el) {
@@ -110,34 +123,37 @@ function showTab(name, el) {
   document.getElementById('panel-' + name).classList.add('active');
 }
 
-async function cargar() {
+async function cargar(esManual = false) {
+  const dot = document.getElementById('status-dot');
+  dot.style.background = "orange";
+  
   try {
     const response = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
     const csv = await response.text();
     const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
     
-    let encontrados = {};
-    let nombresFinal = {};
-    let huboCambio = false;
+    let enc = {}; let nombresFinal = {}; let huboCambio = false;
 
     rows.forEach(row => {
       const id = parseInt(row[0]);
       if (!isNaN(id)) {
-        encontrados[id] = { id, hora: row[1], l: row[2], v: row[3], resL: row[4], resV: row[5] };
+        enc[id] = { id, hora: row[1], l: row[2], v: row[3], resL: row[4], resV: row[5] };
         if (REFERENCIA[id] && row[1] !== REFERENCIA[id]) huboCambio = true;
       }
       if (row[0] === 'PFA' && row[2]) nombresFinal[row[1]] = row[2].toUpperCase();
     });
 
-    document.getElementById('alerta-cambio').style.display = huboCambio ? 'block' : 'none';
-    renderPartidos(encontrados, nombresFinal);
-    renderClasificacion(encontrados);
+    if (esManual) alert(huboCambio ? "⚠️ ¡Atención! Hay cambios en los horarios respecto al plan original." : "✅ Todo correcto. Los horarios coinciden con el plan oficial.");
 
-    document.getElementById('status-dot').className = 'ok';
-    document.getElementById('status-txt').innerText = 'en vivo';
+    document.getElementById('alerta-cambio').style.display = huboCambio ? 'block' : 'none';
+    renderPartidos(enc, nombresFinal);
+    renderClasificacion(enc);
+
+    dot.style.background = "#4ade80";
+    document.getElementById('status-txt').innerText = "en vivo";
     document.getElementById('last-update').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   } catch (e) {
-    document.getElementById('status-dot').className = 'error';
+    dot.style.background = "#f87171";
   }
 }
 
@@ -146,23 +162,24 @@ function renderPartidos(enc, nombres) {
   ESTRUCTURA.forEach(seccion => {
     html += `<div class="section-label">${seccion.dia}</div>`;
     seccion.ids.forEach(id => {
-      const p = enc[id];
-      if (!p) return;
+      const p = enc[id]; if (!p) return;
       
       const nomL = nombres[p.l] || p.l;
       const nomV = nombres[p.v] || p.v;
       const esMio = nomL.includes('NBF') || nomV.includes('NBF');
       const esCambio = REFERENCIA[id] && p.hora !== REFERENCIA[id];
-      const resultado = (p.resL && p.resV) ? `${p.resL} - ${p.resV}` : 'vs';
 
       html += `
         <div class="partido-card ${esMio ? 'mi-partido' : ''}">
-          <div class="partido-hora ${esCambio ? 'hora-cambiada' : ''}">${p.hora}<small>#${id}</small></div>
+          <div class="partido-hora ${esCambio ? 'hora-cambiada' : ''}">
+            ${p.hora}
+            <span class="pista-tag">${PISTAS[id] || 'Pista TBD'}</span>
+          </div>
           <div>
             <div class="equipo ${nomL === MI_EQUIPO ? 'destacado' : ''}">${nomL}</div>
             <div class="equipo ${nomV === MI_EQUIPO ? 'destacado' : ''}">${nomV}</div>
           </div>
-          <div class="resultado">${resultado}</div>
+          <div class="resultado">${(p.resL && p.resV) ? p.resL + '-' + p.resV : 'vs'}</div>
         </div>`;
     });
   });
@@ -171,7 +188,6 @@ function renderPartidos(enc, nombres) {
 
 function renderClasificacion(enc) {
   const stats = {};
-  // Solo contamos partidos de grupo (del 71 al 80)
   Object.values(enc).filter(p => p.id >= 71 && p.id <= 80).forEach(p => {
     [p.l, p.v].forEach(eq => { if(!stats[eq]) stats[eq] = {pj:0, pg:0, pf:0, pc:0, pts:0}; });
     if(p.resL && p.resV) {
@@ -181,11 +197,10 @@ function renderClasificacion(enc) {
       else { stats[p.v].pg++; stats[p.v].pts += 2; stats[p.l].pts += 1; }
     }
   });
-
   const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc));
   let html = `<div class="tabla-wrap"><table><thead><tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
   sorted.forEach(([nom, s]) => {
-    html += `<tr class="${nom === MI_EQUIPO ? 'mi-fila' : ''}"><td>${nom}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf - s.pc}</td></tr>`;
+    html += `<tr class="${nom === MI_EQUIPO ? 'mi-fila' : ''}"><td>${nom}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf-s.pc}</td></tr>`;
   });
   document.getElementById('panel-clasificacion').innerHTML = html + `</tbody></table></div>`;
 }
