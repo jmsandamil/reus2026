@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Monitor Reus 2026</title>
+<title>NBF Castelló · Monitor Geométrico Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -12,65 +12,93 @@
     --muted: #64748b; --green: #4ade80; --red: #f87171;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding-bottom: 4rem; }
-  header { border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 0; max-width: 900px; margin: 0 auto; }
-  .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-  h1 span.nbf { color: var(--accent-nbf); }
-  h1 span.cas { color: var(--accent-castello); }
-  .refresh-info { text-align: right; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
-  .btn-check { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px; font-family: 'DM Mono'; }
-  #alerta-cambio { display: none; background: rgba(248, 113, 113, 0.15); border: 1px solid var(--red); color: var(--red); padding: 1rem; border-radius: 8px; margin: 1.5rem 1.5rem 0; font-size: 12px; font-family: 'DM Mono'; }
-  .tabs { display: flex; margin-top: 1.5rem; border-bottom: 1px solid var(--border); }
-  .tab { font-family: 'DM Mono'; font-size: 11px; padding: 0.65rem 1.2rem; cursor: pointer; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; text-transform: uppercase; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding-bottom: 5rem; }
+  
+  header { border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 1rem; max-width: 900px; margin: 0 auto; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
+  h1 { font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: 800; letter-spacing: -0.02em; }
+  h1 .nbf { color: var(--accent-nbf); }
+  h1 .cas { color: var(--accent-castello); }
+
+  .status-info { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-align: right; }
+  #status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #444; margin-right: 5px; }
+  #status-dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+  #alerta-cambio { 
+    display: none; background: rgba(248, 113, 113, 0.1); border: 1px solid var(--red); 
+    color: var(--red); padding: 1rem; border-radius: 8px; margin: 1.5rem 1.5rem 0;
+    font-size: 12px; font-family: 'DM Mono', monospace; line-height: 1.4;
+  }
+
+  .tabs { display: flex; max-width: 900px; margin: 1rem auto 0; padding: 0 1.5rem; border-bottom: 1px solid var(--border); }
+  .tab { font-family: 'DM Mono'; font-size: 11px; padding: 0.8rem 1.2rem; cursor: pointer; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; text-transform: uppercase; }
   .tab.active { color: var(--accent-nbf); border-bottom-color: var(--accent-nbf); }
+
   main { max-width: 900px; margin: 1.5rem auto; padding: 0 1.5rem; }
   .panel { display: none; }
   .panel.active { display: block; }
-  .section-label { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; color: var(--muted); margin: 1.5rem 0 1rem; display: flex; align-items: center; gap: 10px; }
+
+  .section-label { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; color: var(--muted); margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .partido-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 8px; display: grid; grid-template-columns: 85px 1fr auto; align-items: center; gap: 1rem; }
+
+  .partido-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 10px; display: grid; grid-template-columns: 85px 1fr auto; align-items: center; gap: 1rem; }
   .mi-partido { border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.05); }
-  .partido-hora { font-family: 'DM Mono'; font-size: 16px; color: var(--gold); }
+  .partido-hora { font-family: 'DM Mono'; font-size: 17px; color: var(--gold); line-height: 1.2; }
   .hora-cambiada { color: var(--red) !important; font-weight: bold; }
-  .pista-tag { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; }
-  .equipo { font-size: 13px; font-weight: 600; color: #94a3b8; }
+  .pista-tag { display: block; font-size: 9px; color: var(--muted); margin-top: 4px; }
+
+  .equipo { font-size: 14px; font-weight: 700; color: #94a3b8; line-height: 1.4; }
   .equipo.destacado { color: var(--text); }
-  .resultado { font-family: 'DM Mono'; font-size: 16px; color: var(--accent-nbf); font-weight: bold; }
+  .resultado { font-family: 'DM Mono'; font-size: 18px; font-weight: 800; color: var(--accent-nbf); }
+
+  .tabla-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; }
+  th { padding: 12px; text-align: left; background: var(--surface2); color: var(--muted); font-size: 9px; text-transform: uppercase; }
+  td { padding: 14px 12px; border-bottom: 1px solid var(--border); }
+  .mi-fila { background: rgba(56,189,248,0.05); color: var(--accent-nbf); }
 </style>
 </head>
 <body>
+
 <header>
   <div class="header-top">
     <div>
       <div style="font-family:'DM Mono'; font-size:10px; color:var(--muted); margin-bottom:4px;">SALLE REUS 2026</div>
       <h1><span class="nbf">NBF</span> <span class="cas">Castelló</span></h1>
     </div>
-    <div class="refresh-info">
-      <div><span id="status-dot" style="display:inline-block; width:6px; height:6px; border-radius:50%; background:gray; margin-right:5px;"></span><span id="status-txt">conectando</span></div>
+    <div class="status-info">
+      <div><span id="status-dot"></span> <span id="status-txt">CONECTANDO</span></div>
       <div id="last-update">--:--</div>
-      <button class="btn-check" onclick="cargarTodo()">REINTENTAR</button>
     </div>
   </div>
-  <div class="tabs">
-    <button class="tab active" onclick="showTab('partidos',this)">Partidos</button>
-    <button class="tab" onclick="showTab('clasificacion',this)">Clasificación</button>
-  </div>
 </header>
-<div id="alerta-cambio"><strong>⚠️ AVISO:</strong> Horarios modificados respecto al plan oficial.</div>
+
+<div id="alerta-cambio">
+  <strong>⚠️ CAMBIO EN EL CALENDARIO</strong><br>
+  Se ha detectado que un partido se ha movido de su celda original o ha cambiado de horario.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('partidos',this)">Partidos</button>
+  <button class="tab" onclick="showTab('clasificacion',this)">Clasificación</button>
+</div>
+
 <main>
-  <div id="panel-partidos" class="panel active">Buscando datos...</div>
+  <div id="panel-partidos" class="panel active">Cargando datos del Excel...</div>
   <div id="panel-clasificacion" class="panel"></div>
 </main>
+
 <script>
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=470734480';
 const PROXY = 'https://corsproxy.io/?';
 const MI_EQUIPO = 'NBF CASTELLÓ A';
 
-const REFERENCIA = {
-  71: {h:"12:00", p:"PLOMS 4"}, 72: {h:"15:00", p:"PLOMS 4"}, 76: {h:"17:00", p:"BARRI GAUDÍ 1"},
-  77: {h:"09:00", p:"BARRI GAUDÍ 1"}, 73: {h:"10:00", p:"BARRI GAUDÍ 1"}, 78: {h:"12:00", p:"BARRI GAUDÍ 1"},
-  74: {h:"16:00", p:"BARRI GAUDÍ 1"}, 79: {h:"17:00", p:"BARRI GAUDÍ 2"}, 75: {h:"19:00", p:"PLOMS 4"}, 80: {h:"20:00", p:"PLOMS 4"},
-  81: {h:"10:00", p:"PLOMS 4"}, 82: {h:"09:00", p:"PLOMS 4"}, 83: {h:"11:00", p:"PLOMS 4"}
+// REFERENCIA OFICIAL (ID: { Fila donde debería estar, Hora oficial })
+const GUIA = {
+  71: {f: 14, h: "12:00"}, 72: {f: 17, h: "15:00"}, 76: {f: 21, h: "17:00"},
+  77: {f: 33, h: "09:00"}, 73: {f: 35, h: "10:00"}, 78: {f: 39, h: "12:00"},
+  74: {f: 45, h: "16:00"}, 79: {f: 47, h: "17:00"}, 75: {f: 49, h: "19:00"}, 80: {f: 51, h: "20:00"},
+  82: {f: 59, h: "09:00"}, 81: {f: 61, h: "10:00"}, 83: {f: 63, h: "11:00"}
 };
 
 const ESTRUCTURA = [
@@ -79,84 +107,113 @@ const ESTRUCTURA = [
   { dia: 'Domingo 3 Mayo (Finales)', ids: [82, 81, 83] }
 ];
 
-async function cargarTodo() {
-  document.getElementById('status-dot').style.background = "orange";
+async function cargar() {
   try {
-    const resp = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
-    const csv = await resp.text();
+    const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
+    const csv = await res.text();
     const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
-    let enc = {}; let nombresFinal = {}; let cambios = false;
+    
+    processGrid(rows);
 
-    rows.forEach(row => {
-      row.forEach((cell, idx) => {
-        const id = parseInt(cell);
-        if (!isNaN(id) && id >= 71 && id <= 83) {
-          const restoFila = row.filter((c, i) => i !== idx && c !== "");
-          const hora = restoFila.find(c => c.includes(':')) || "--:--";
-          const equipos = restoFila.filter(c => c.length > 3 && !c.includes(':') && isNaN(parseInt(c)));
-          const scores = restoFila.filter(c => !isNaN(parseInt(c)) && !c.includes(':') && c.length < 4);
-          
-          enc[id] = {
-            id, hora, 
-            l: equipos[0] || "TBD", 
-            v: equipos[1] || "TBD",
-            resL: scores[0] || null,
-            resV: scores[1] || null
-          };
-          if (REFERENCIA[id] && hora.replace('h','') !== REFERENCIA[id].h) cambios = true;
-        }
-      });
-      if (row.includes('PFA')) {
-        const i = row.indexOf('PFA');
-        if (row[i+2]) nombresFinal[row[i+1]] = row[i+2].toUpperCase();
-      }
-    });
-
-    document.getElementById('alerta-cambio').style.display = cambios ? 'block' : 'none';
-    render(enc, nombresFinal);
-    document.getElementById('status-dot').style.background = "#4ade80";
+    document.getElementById('status-dot').className = 'ok';
+    document.getElementById('status-txt').innerText = 'EN VIVO';
     document.getElementById('last-update').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   } catch (e) {
-    document.getElementById('status-dot').style.background = "#f87171";
+    document.getElementById('status-dot').className = '';
+    document.getElementById('status-txt').innerText = 'ERROR';
   }
 }
 
-function render(enc, nombres) {
+function processGrid(rows) {
+  let enc = {};
+  let alerta = false;
+
+  // Recorremos todo el Excel buscando los IDs
+  for (let f = 0; f < rows.length; f++) {
+    for (let c = 0; c < rows[f].length; c++) {
+      const val = parseInt(rows[f][c]);
+      if (!isNaN(val) && GUIA[val]) {
+        const id = val;
+        
+        // 1. HORA: Buscamos hacia atrás en la misma fila hasta ver ":"
+        let horaFound = "--:--";
+        for (let x = c; x >= 0; x--) {
+          if (rows[f][x] && rows[f][x].includes(':')) {
+            horaFound = rows[f][x];
+            break;
+          }
+        }
+
+        // 2. EQUIPOS: Una fila arriba, columnas adyacentes
+        const eqL = rows[f - 1][c + 1] || "TBD";
+        const eqV = rows[f - 1][c + 2] || "TBD";
+
+        // 3. PUNTOS: En la misma fila del ID, columnas adyacentes
+        const pL = rows[f][c + 1] || "";
+        const pV = rows[f][c + 2] || "";
+
+        // 4. PISTA: Según la columna
+        const pistas = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"];
+        const pistaIdx = Math.floor(c / 3);
+        const pistaNom = pistas[pistaIdx] || "TBD";
+
+        // 5. CAMBIOS: Comprobamos fila y hora
+        if ((f + 1) !== GUIA[id].f || horaFound !== GUIA[id].h) alerta = true;
+
+        enc[id] = { id, hora: horaFound, pista: pistaNom, l: eqL, v: eqV, resL: pL, resV: pV, error: ((f+1)!==GUIA[id].f || horaFound!==GUIA[id].h) };
+      }
+    }
+  }
+
+  document.getElementById('alerta-cambio').style.display = alerta ? 'block' : 'none';
+  render(enc);
+}
+
+function render(enc) {
+  // RENDER PARTIDOS
   let htmlP = '';
   ESTRUCTURA.forEach(sec => {
     htmlP += `<div class="section-label">${sec.dia}</div>`;
     sec.ids.forEach(id => {
-      const p = enc[id] || {hora:"", l:"TBD", v:"TBD"};
-      const ref = REFERENCIA[id] || {h:"", p:""};
-      const nomL = nombres[p.l] || p.l;
-      const nomV = nombres[p.v] || p.v;
-      const esMio = nomL.includes('NBF') || nomV.includes('NBF');
-      const res = (p.resL && p.resV) ? `${p.resL} - ${p.resV}` : 'vs';
+      const p = enc[id];
+      if (!p) return;
+      const esMio = p.l.includes('NBF') || p.v.includes('NBF');
+      const marcador = (p.resL && p.resV) ? `${p.resL} - ${p.resV}` : 'vs';
 
-      htmlP += `<div class="partido-card ${esMio ? 'mi-partido' : ''}">
-        <div class="partido-hora ${p.hora && p.hora.replace('h','') !== ref.h ? 'hora-cambiada' : ''}">${p.hora || ref.h}<span class="pista-tag">${ref.p}</span></div>
-        <div><div class="equipo ${nomL.includes('NBF') ? 'destacado' : ''}">${nomL}</div><div class="equipo ${nomV.includes('NBF') ? 'destacado' : ''}">${nomV}</div></div>
-        <div class="resultado">${res}</div></div>`;
+      htmlP += `
+        <div class="partido-card ${esMio ? 'mi-partido' : ''}">
+          <div class="partido-hora">
+            <span class="${p.error ? 'hora-cambiada' : ''}">${p.hora}</span>
+            <span class="pista-tag">${p.pista}</span>
+          </div>
+          <div>
+            <div class="equipo ${p.l.includes('NBF') ? 'destacado' : ''}">${p.l}</div>
+            <div class="equipo ${p.v.includes('NBF') ? 'destacado' : ''}">${p.v}</div>
+          </div>
+          <div class="resultado">${marcador}</div>
+        </div>`;
     });
   });
   document.getElementById('panel-partidos').innerHTML = htmlP;
 
+  // RENDER CLASIFICACIÓN (Solo IDs de grupo: 71 al 80)
   const stats = {};
   Object.values(enc).filter(p => p.id <= 80).forEach(p => {
     [p.l, p.v].forEach(eq => { if(!stats[eq]) stats[eq] = {pj:0, pg:0, pf:0, pc:0, pts:0}; });
-    if(p.resL && p.resV) {
+    if(p.resL && p.resV && !isNaN(parseInt(p.resL))) {
       const rl = parseInt(p.resL), rv = parseInt(p.resV);
-      stats[p.l].pj++; stats[p.v].pj++; stats[p.l].pf+=rl; stats[p.l].pc+=rv; stats[p.v].pf+=rv; stats[p.v].pc+=rl;
-      if(rl > rv) { stats[p.l].pg++; stats[p.l].pts+=2; stats[p.v].pts+=1; }
-      else { stats[p.v].pg++; stats[p.v].pts+=2; stats[p.l].pts+=1; }
+      stats[p.l].pj++; stats[p.v].pj++; stats[p.l].pf += rl; stats[p.l].pc += rv; stats[p.v].pf += rv; stats[p.v].pc += rl;
+      if(rl > rv) { stats[p.l].pg++; stats[p.l].pts += 2; stats[p.v].pts += 1; }
+      else { stats[p.v].pg++; stats[p.v].pts += 2; stats[p.l].pts += 1; }
     }
   });
+
   const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc));
   let htmlC = `<div class="tabla-wrap"><table><thead><tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
   sorted.forEach(([nom, s]) => {
-    htmlC += `<tr class="${nom === MI_EQUIPO ? 'mi-fila' : ''}"><td>${nom}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf-s.pc}</td></tr>`;
+    htmlC += `<tr class="${nom === MI_EQUIPO ? 'mi-fila' : ''}"><td>${nom}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf - s.pc}</td></tr>`;
   });
-  document.getElementById('panel-clasificacion').innerHTML = htmlC + `</tbody></table></div>`;
+  document.getElementById('panel-clasificacion').innerHTML = htmlC + (sorted.length ? `</tbody></table></div>` : `<p style="padding:20px; color:var(--muted)">Sin resultados todavía</p>`);
 }
 
 function showTab(name, el) {
@@ -165,8 +222,9 @@ function showTab(name, el) {
   el.classList.add('active');
   document.getElementById('panel-' + name).classList.add('active');
 }
-cargarTodo();
-setInterval(cargarTodo, 120000);
+
+cargar();
+setInterval(cargar, 60000);
 </script>
 </body>
 </html>
