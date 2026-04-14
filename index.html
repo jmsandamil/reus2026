@@ -8,14 +8,15 @@
 <style>
   :root {
     --bg: #0a0f1e; --surface: #111827; --surface2: #1a2235; --border: rgba(255,255,255,0.07);
-    --accent-nbf: #38bdf8; --gold: #f0b429; --text: #f1f5f9;
+    --accent-nbf: #38bdf8; --accent-castello: #f472b6; --gold: #f0b429; --text: #f1f5f9;
     --muted: #64748b; --green: #4ade80; --red: #f87171;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding-bottom: 4rem; }
   header { border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 0; max-width: 900px; margin: 0 auto; }
   .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-  h1 span { color: var(--accent-nbf); }
+  h1 span.nbf { color: var(--accent-nbf); }
+  h1 span.cas { color: var(--accent-castello); }
   .refresh-info { text-align: right; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
   .btn-check { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px; font-family: 'DM Mono'; }
   #alerta-cambio { display: none; background: rgba(248, 113, 113, 0.15); border: 1px solid var(--red); color: var(--red); padding: 1rem; border-radius: 8px; margin: 1.5rem 1.5rem 0; font-size: 12px; font-family: 'DM Mono'; }
@@ -42,7 +43,7 @@
   <div class="header-top">
     <div>
       <div style="font-family:'DM Mono'; font-size:10px; color:var(--muted); margin-bottom:4px;">SALLE REUS 2026</div>
-      <h1><span>NBF</span> Castelló</h1>
+      <h1><span class="nbf">NBF</span> <span class="cas">Castelló</span></h1>
     </div>
     <div class="refresh-info">
       <div><span id="status-dot" style="display:inline-block; width:6px; height:6px; border-radius:50%; background:gray; margin-right:5px;"></span><span id="status-txt">conectando</span></div>
@@ -50,10 +51,16 @@
       <button class="btn-check" onclick="cargarTodo()">REINTENTAR</button>
     </div>
   </div>
-  <div class="tabs"><button class="tab active" onclick="showTab('partidos',this)">Partidos</button></div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('partidos',this)">Partidos</button>
+    <button class="tab" onclick="showTab('clasificacion',this)">Clasificación</button>
+  </div>
 </header>
-<div id="alerta-cambio"><strong>⚠️ AVISO:</strong> Horarios modificados o error en la lectura de nombres.</div>
-<main><div id="panel-partidos" class="panel active">Cargando datos...</div></main>
+<div id="alerta-cambio"><strong>⚠️ AVISO:</strong> Horarios modificados respecto al plan oficial.</div>
+<main>
+  <div id="panel-partidos" class="panel active">Buscando datos...</div>
+  <div id="panel-clasificacion" class="panel"></div>
+</main>
 <script>
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=470734480';
 const PROXY = 'https://corsproxy.io/?';
@@ -62,7 +69,7 @@ const MI_EQUIPO = 'NBF CASTELLÓ A';
 const REFERENCIA = {
   71: {h:"12:00", p:"PLOMS 4"}, 72: {h:"15:00", p:"PLOMS 4"}, 76: {h:"17:00", p:"BARRI GAUDÍ 1"},
   77: {h:"09:00", p:"BARRI GAUDÍ 1"}, 73: {h:"10:00", p:"BARRI GAUDÍ 1"}, 78: {h:"12:00", p:"BARRI GAUDÍ 1"},
-  74: {h:"16:00", p:"BARRI GAUDÍ 1"}, 79: {h:"17:00", p:"BARRI GAUDÍ 2"}, 75: {h:"17:00", p:"BARRI GAUDÍ 2"}, 80: {h:"20:00", p:"PLOMS 4"},
+  74: {h:"16:00", p:"BARRI GAUDÍ 1"}, 79: {h:"17:00", p:"BARRI GAUDÍ 2"}, 75: {h:"19:00", p:"PLOMS 4"}, 80: {h:"20:00", p:"PLOMS 4"},
   81: {h:"10:00", p:"PLOMS 4"}, 82: {h:"09:00", p:"PLOMS 4"}, 83: {h:"11:00", p:"PLOMS 4"}
 };
 
@@ -78,32 +85,35 @@ async function cargarTodo() {
     const resp = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
     const csv = await resp.text();
     const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
-    let enc = {}; let cambios = false;
+    let enc = {}; let nombresFinal = {}; let cambios = false;
 
     rows.forEach(row => {
       row.forEach((cell, idx) => {
         const id = parseInt(cell);
         if (!isNaN(id) && id >= 71 && id <= 83) {
-          // Buscador mejorado: busca textos que no sean números ni horas
-          const datosFila = row.filter(c => c !== "" && c !== cell);
-          const hora = datosFila.find(c => c.includes(':')) || "--:--";
-          const equipos = datosFila.filter(c => !c.includes(':') && isNaN(parseInt(c)));
+          const restoFila = row.filter((c, i) => i !== idx && c !== "");
+          const hora = restoFila.find(c => c.includes(':')) || "--:--";
+          const equipos = restoFila.filter(c => c.length > 3 && !c.includes(':') && isNaN(parseInt(c)));
+          const scores = restoFila.filter(c => !isNaN(parseInt(c)) && !c.includes(':') && c.length < 4);
           
           enc[id] = {
-            id: id,
-            hora: hora,
-            l: equipos[0] || "TBD",
+            id, hora, 
+            l: equipos[0] || "TBD", 
             v: equipos[1] || "TBD",
-            resL: row.find((c, i) => i > idx && !isNaN(parseInt(c)) && !c.includes(':')),
-            resV: row.findLast((c, i) => i > idx && !isNaN(parseInt(c)) && !c.includes(':'))
+            resL: scores[0] || null,
+            resV: scores[1] || null
           };
           if (REFERENCIA[id] && hora.replace('h','') !== REFERENCIA[id].h) cambios = true;
         }
       });
+      if (row.includes('PFA')) {
+        const i = row.indexOf('PFA');
+        if (row[i+2]) nombresFinal[row[i+1]] = row[i+2].toUpperCase();
+      }
     });
 
     document.getElementById('alerta-cambio').style.display = cambios ? 'block' : 'none';
-    render(enc);
+    render(enc, nombresFinal);
     document.getElementById('status-dot').style.background = "#4ade80";
     document.getElementById('last-update').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   } catch (e) {
@@ -111,30 +121,50 @@ async function cargarTodo() {
   }
 }
 
-function render(enc) {
+function render(enc, nombres) {
   let htmlP = '';
   ESTRUCTURA.forEach(sec => {
     htmlP += `<div class="section-label">${sec.dia}</div>`;
     sec.ids.forEach(id => {
       const p = enc[id] || {hora:"", l:"TBD", v:"TBD"};
       const ref = REFERENCIA[id] || {h:"", p:""};
-      const esMio = p.l.includes('NBF') || p.v.includes('NBF');
-      const res = (p.resL && p.resV && p.resL !== p.resV) ? `${p.resL} - ${p.resV}` : 'vs';
+      const nomL = nombres[p.l] || p.l;
+      const nomV = nombres[p.v] || p.v;
+      const esMio = nomL.includes('NBF') || nomV.includes('NBF');
+      const res = (p.resL && p.resV) ? `${p.resL} - ${p.resV}` : 'vs';
 
-      htmlP += `
-        <div class="partido-card ${esMio ? 'mi-partido' : ''}">
-          <div class="partido-hora">${p.hora || ref.h}<span class="pista-tag">${ref.p}</span></div>
-          <div>
-            <div class="equipo ${p.l.includes('NBF') ? 'destacado' : ''}">${p.l}</div>
-            <div class="equipo ${p.v.includes('NBF') ? 'destacado' : ''}">${p.v}</div>
-          </div>
-          <div class="resultado">${res}</div>
-        </div>`;
+      htmlP += `<div class="partido-card ${esMio ? 'mi-partido' : ''}">
+        <div class="partido-hora ${p.hora && p.hora.replace('h','') !== ref.h ? 'hora-cambiada' : ''}">${p.hora || ref.h}<span class="pista-tag">${ref.p}</span></div>
+        <div><div class="equipo ${nomL.includes('NBF') ? 'destacado' : ''}">${nomL}</div><div class="equipo ${nomV.includes('NBF') ? 'destacado' : ''}">${nomV}</div></div>
+        <div class="resultado">${res}</div></div>`;
     });
   });
   document.getElementById('panel-partidos').innerHTML = htmlP;
+
+  const stats = {};
+  Object.values(enc).filter(p => p.id <= 80).forEach(p => {
+    [p.l, p.v].forEach(eq => { if(!stats[eq]) stats[eq] = {pj:0, pg:0, pf:0, pc:0, pts:0}; });
+    if(p.resL && p.resV) {
+      const rl = parseInt(p.resL), rv = parseInt(p.resV);
+      stats[p.l].pj++; stats[p.v].pj++; stats[p.l].pf+=rl; stats[p.l].pc+=rv; stats[p.v].pf+=rv; stats[p.v].pc+=rl;
+      if(rl > rv) { stats[p.l].pg++; stats[p.l].pts+=2; stats[p.v].pts+=1; }
+      else { stats[p.v].pg++; stats[p.v].pts+=2; stats[p.l].pts+=1; }
+    }
+  });
+  const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc));
+  let htmlC = `<div class="tabla-wrap"><table><thead><tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
+  sorted.forEach(([nom, s]) => {
+    htmlC += `<tr class="${nom === MI_EQUIPO ? 'mi-fila' : ''}"><td>${nom}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf-s.pc}</td></tr>`;
+  });
+  document.getElementById('panel-clasificacion').innerHTML = htmlC + `</tbody></table></div>`;
 }
-function showTab(name, el) { cargarTodo(); }
+
+function showTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
 cargarTodo();
 setInterval(cargarTodo, 120000);
 </script>
