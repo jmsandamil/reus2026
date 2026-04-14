@@ -1,156 +1,154 @@
 <script>
-const SHEET_JSON = "https://opensheet.elk.sh/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/1972783032";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1972783032";
+const PROXY = "https://corsproxy.io/?";
 const MI_EQUIPO = "NBF CASTELLÓ A";
 
 async function cargar() {
   try {
-    const res = await fetch(SHEET_JSON + "?t=" + Date.now());
-    const data = await res.json();
+    const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + "&t=" + Date.now()));
+    const csv = await res.text();
 
-    const partidos = parsearPartidos(data);
+    const rows = csv.split("\n").map(r => r.split(",").map(c => c.trim().replace(/"/g,'')));
+
+    const partidos = parsear(rows);
     render(partidos);
 
-    document.getElementById('status-dot').className = 'ok';
-    document.getElementById('status-txt').innerText = 'EN VIVO';
-    document.getElementById('last-update').innerText =
-      new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    setStatus("EN VIVO");
 
   } catch (e) {
     console.error(e);
-    document.getElementById('status-txt').innerText = 'ERROR RED';
+    document.getElementById("panel-partidos").innerHTML = "<div style='color:red'>Error cargando datos</div>";
+    setStatus("ERROR");
   }
 }
 
 
-// 🔍 Detecta partidos automáticamente
-function parsearPartidos(data) {
+// 🔍 Parser inteligente (busca patrones reales)
+function parsear(rows) {
   const partidos = [];
 
-  data.forEach(row => {
-    const values = Object.values(row).map(v => (v || "").trim());
+  for (let f = 0; f < rows.length; f++) {
+    for (let c = 0; c < rows[f].length; c++) {
 
-    // Detectar filas que parecen partidos
-    const equipos = values.filter(v => v.length > 3 && isNaN(v));
+      const val = rows[f][c];
 
-    if (equipos.length >= 2) {
-      const hora = values.find(v => v.match(/\d{1,2}:\d{2}/)) || "--:--";
-      const pista = values.find(v => v.match(/P\d+/i)) || "P?";
+      // detectar IDs tipo 71,72...
+      if (!isNaN(parseInt(val)) && val.length <= 3) {
 
-      const nums = values.filter(v => !isNaN(parseInt(v)));
-      let resL = "", resV = "";
+        const hora = buscarHora(rows, f);
+        const pista = buscarPista(rows, f, c);
 
-      if (nums.length >= 2) {
-        resL = nums[0];
-        resV = nums[1];
+        const eqL = rows[f - 1]?.[c + 1] || "TBD";
+        const eqV = rows[f - 1]?.[c + 2] || "TBD";
+
+        const resL = rows[f]?.[c + 1] || "";
+        const resV = rows[f]?.[c + 2] || "";
+
+        if (eqL !== "TBD" && eqV !== "TBD") {
+          partidos.push({hora, pista, l: eqL, v: eqV, resL, resV});
+        }
       }
-
-      partidos.push({
-        hora,
-        pista,
-        l: equipos[0],
-        v: equipos[1],
-        resL,
-        resV
-      });
     }
-  });
+  }
 
   return partidos;
 }
 
 
-// 🎨 Render partidos + clasificación
+// 🧠 buscar hora real
+function buscarHora(rows, f) {
+  for (let i = f; i >= 0; i--) {
+    const cell = rows[i][0];
+    if (cell && cell.match(/\d{1,2}:\d{2}/)) return cell;
+  }
+  return "--:--";
+}
+
+
+// 🧠 buscar pista real
+function buscarPista(rows, f, c) {
+  for (let i = f; i >= 0; i--) {
+    const cell = rows[i][c];
+    if (cell && cell.match(/P\d+/i)) return cell;
+  }
+  return "P?";
+}
+
+
+// 🎨 render
 function render(partidos) {
 
-  // ORDENAR POR HORA
-  partidos.sort((a,b) => a.hora.localeCompare(b.hora));
-
-  // PARTIDOS
-  let htmlP = '';
+  let html = "";
 
   partidos.forEach(p => {
-    const esMio = p.l.includes('NBF') || p.v.includes('NBF');
+    const esMio = p.l.includes("NBF") || p.v.includes("NBF");
 
-    htmlP += `
-      <div class="partido-card ${esMio ? 'mi-partido' : ''}">
-        <div class="partido-hora">
-          <div>${p.hora}</div>
-          <div style="font-size:9px; color:var(--muted); margin-top:4px;">${p.pista}</div>
-        </div>
-        <div>
-          <div class="equipo ${p.l.includes('NBF') ? 'destacado' : ''}">${p.l}</div>
-          <div class="equipo ${p.v.includes('NBF') ? 'destacado' : ''}">${p.v}</div>
-        </div>
-        <div class="resultado">
-          ${(p.resL && p.resV) ? p.resL + '-' + p.resV : 'vs'}
-        </div>
-      </div>`;
+    html += `
+    <div class="partido-card ${esMio ? 'mi-partido' : ''}">
+      <div class="partido-hora">
+        <div>${p.hora}</div>
+        <div style="font-size:9px;color:var(--muted)">${p.pista}</div>
+      </div>
+      <div>
+        <div class="equipo">${p.l}</div>
+        <div class="equipo">${p.v}</div>
+      </div>
+      <div class="resultado">
+        ${(p.resL && p.resV) ? p.resL + "-" + p.resV : "vs"}
+      </div>
+    </div>`;
   });
 
-  document.getElementById('panel-partidos').innerHTML = htmlP;
+  document.getElementById("panel-partidos").innerHTML = html;
+
+  generarClasificacion(partidos);
+}
 
 
-  // 📊 CLASIFICACIÓN
+// 📊 clasificación
+function generarClasificacion(partidos) {
   const stats = {};
 
   partidos.forEach(p => {
     if (!stats[p.l]) stats[p.l] = {pj:0, pg:0, pf:0, pc:0, pts:0};
     if (!stats[p.v]) stats[p.v] = {pj:0, pg:0, pf:0, pc:0, pts:0};
 
-    if (p.resL !== "" && p.resV !== "") {
+    if (p.resL && p.resV) {
       const rl = parseInt(p.resL);
       const rv = parseInt(p.resV);
 
-      stats[p.l].pj++;
-      stats[p.v].pj++;
+      stats[p.l].pj++; stats[p.v].pj++;
 
-      stats[p.l].pf += rl;
-      stats[p.l].pc += rv;
-
-      stats[p.v].pf += rv;
-      stats[p.v].pc += rl;
+      stats[p.l].pf += rl; stats[p.l].pc += rv;
+      stats[p.v].pf += rv; stats[p.v].pc += rl;
 
       if (rl > rv) {
-        stats[p.l].pg++;
-        stats[p.l].pts += 2;
-        stats[p.v].pts += 1;
+        stats[p.l].pg++; stats[p.l].pts += 2; stats[p.v].pts += 1;
       } else {
-        stats[p.v].pg++;
-        stats[p.v].pts += 2;
-        stats[p.l].pts += 1;
+        stats[p.v].pg++; stats[p.v].pts += 2; stats[p.l].pts += 1;
       }
     }
   });
 
-  const sorted = Object.entries(stats).sort(
-    (a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc)
-  );
+  let html = `<div class="tabla-wrap"><table><thead>
+  <tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr>
+  </thead><tbody>`;
 
-  let htmlC = `
-    <div class="tabla-wrap">
-    <table>
-    <thead>
-      <tr>
-        <th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th>
-      </tr>
-    </thead><tbody>`;
-
-  sorted.forEach(([nom, s]) => {
-    htmlC += `
-      <tr class="${nom === MI_EQUIPO ? 'mi-fila' : ''}">
-        <td>${nom}</td>
-        <td>${s.pj}</td>
-        <td>${s.pg}</td>
-        <td>${s.pts}</td>
-        <td>${s.pf - s.pc}</td>
-      </tr>`;
+  Object.entries(stats).forEach(([n,s]) => {
+    html += `<tr><td>${n}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf-s.pc}</td></tr>`;
   });
 
-  htmlC += "</tbody></table></div>";
+  html += "</tbody></table></div>";
 
-  document.getElementById('panel-clasificacion').innerHTML = htmlC;
+  document.getElementById("panel-clasificacion").innerHTML = html;
 }
 
+
+// estado
+function setStatus(txt) {
+  const el = document.getElementById("status-txt");
+  if (el) el.innerText = txt;
+}
 
 cargar();
 setInterval(cargar, 60000);
