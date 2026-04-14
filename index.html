@@ -1,190 +1,157 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Monitor Geométrico A</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0a0f1e; --surface: #111827; --surface2: #1a2235; --border: rgba(255,255,255,0.07);
-    --accent-nbf: #38bdf8; --accent-castello: #f472b6; --gold: #f0b429; --text: #f1f5f9;
-    --muted: #64748b; --red: #f87171;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding-bottom: 5rem; }
-  header { border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 1rem; max-width: 900px; margin: 0 auto; }
-  .status-info { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-align: right; }
-  #status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: gray; margin-right: 5px; }
-  #status-dot.ok { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
-  h1 { font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: 800; letter-spacing: -0.02em; }
-  #alerta-cambio { display: none; background: rgba(248, 113, 113, 0.1); border: 1px solid var(--red); color: var(--red); padding: 1rem; border-radius: 8px; margin: 1.5rem; font-size: 12px; font-family: 'DM Mono'; }
-  .tabs { display: flex; max-width: 900px; margin: 0 auto; padding: 0 1.5rem; border-bottom: 1px solid var(--border); }
-  .tab { font-family: 'DM Mono'; font-size: 11px; padding: 1rem; cursor: pointer; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; }
-  .tab.active { color: var(--accent-nbf); border-bottom-color: var(--accent-nbf); }
-  main { max-width: 900px; margin: 1.5rem auto; padding: 0 1.5rem; }
-  .section-label { font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; color: var(--muted); margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
-  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .partido-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 10px; display: grid; grid-template-columns: 85px 1fr auto; align-items: center; gap: 1rem; }
-  .mi-partido { border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.05); }
-  .partido-hora { font-family: 'DM Mono'; font-size: 17px; color: var(--gold); }
-  .hora-cambiada { color: var(--red) !important; font-weight: bold; }
-  .equipo { font-size: 14px; font-weight: 700; color: #94a3b8; }
-  .equipo.destacado { color: var(--text); }
-  .resultado { font-family: 'DM Mono'; font-size: 18px; font-weight: 800; color: var(--accent-nbf); }
-  .tabla-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; }
-  th { padding: 12px; text-align: left; background: var(--surface2); color: var(--muted); font-size: 9px; }
-  td { padding: 14px 12px; border-bottom: 1px solid var(--border); }
-  .mi-fila { color: var(--accent-nbf); background: rgba(56,189,248,0.05); }
-</style>
-</head>
-<body>
-
-<header>
-  <div class="status-info">
-    <div><span id="status-dot"></span> <span id="status-txt">CONECTANDO</span></div>
-    <div id="last-update">--:--</div>
-  </div>
-  <h1><span style="color:var(--accent-nbf)">NBF</span> <span style="color:var(--accent-castello)">Castelló</span></h1>
-</header>
-
-<div id="alerta-cambio">⚠️ ATENCIÓN: Se han detectado cambios en la ubicación o el horario del Excel original.</div>
-
-<div class="tabs">
-  <button class="tab active" onclick="showTab('partidos',this)">Partidos</button>
-  <button class="tab" onclick="showTab('clasificacion',this)">Clasificación</button>
-</div>
-
-<main>
-  <div id="panel-partidos" class="panel active">Cargando...</div>
-  <div id="panel-clasificacion" class="panel"></div>
-</main>
-
 <script>
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=470734480';
-const PROXY = 'https://corsproxy.io/?';
-const MI_EQUIPO = 'NBF CASTELLÓ A';
-
-// GUIA DE REFERENCIA (ID: { Fila oficial en Excel, Hora oficial })
-const GUIA = {
-  71: {f: 14, h: "12:00"}, 72: {f: 17, h: "15:00"}, 76: {f: 21, h: "17:00"},
-  77: {f: 33, h: "09:00"}, 73: {f: 35, h: "10:00"}, 78: {f: 39, h: "12:00"},
-  74: {f: 45, h: "16:00"}, 79: {f: 47, h: "17:00"}, 75: {f: 49, h: "19:00"}, 80: {f: 51, h: "20:00"},
-  82: {f: 59, h: "09:00"}, 81: {f: 61, h: "10:00"}, 83: {f: 63, h: "11:00"}
-};
-
-const ESTRUCTURA = [
-  { dia: 'Viernes 1 Mayo', ids: [71, 72, 76] },
-  { dia: 'Sábado 2 Mayo', ids: [77, 73, 78, 74, 79, 75, 80] },
-  { dia: 'Domingo 3 Mayo (Finales)', ids: [82, 81, 83] }
-];
+const SHEET_JSON = "https://opensheet.elk.sh/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/470734480";
+const MI_EQUIPO = "NBF CASTELLÓ A";
 
 async function cargar() {
   try {
-    const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
-    const csv = await res.text();
-    const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
-    
-    let enc = {};
-    let alerta = false;
+    const res = await fetch(SHEET_JSON + "?t=" + Date.now());
+    const data = await res.json();
 
-    // Buscamos cada ID en el grid
-    for (let f = 0; f < rows.length; f++) {
-      for (let c = 0; c < rows[f].length; c++) {
-        const val = parseInt(rows[f][c]);
-        if (!isNaN(val) && GUIA[val]) {
-          const id = val;
-          
-          // HORA: Siempre en la columna A (índice 0) de la misma fila
-          const horaExcel = rows[f][0] || "--:--";
-          
-          // EQUIPOS: Fila arriba, columnas +1 y +2 desde el ID
-          const eqL = rows[f - 1][c + 1] || "TBD";
-          const eqV = rows[f - 1][c + 2] || "TBD";
-
-          // RESULTADOS: Misma fila, columnas +1 y +2 desde el ID
-          const resL = rows[f][c + 1] || "";
-          const resV = rows[f][c + 2] || "";
-
-          // PISTA: Basado en la columna donde encontramos el ID
-          const pistas = ["P1", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"];
-          const pistaIdx = Math.floor(c / 3);
-          const pistaNom = pistas[pistaIdx] || "TBD";
-
-          // CAMBIO: Si la fila real (f+1) no es la esperada o la hora no coincide
-          const cambioDetectado = ((f + 1) !== GUIA[id].f || horaExcel !== GUIA[id].h);
-          if (cambioDetectado) alerta = true;
-
-          enc[id] = { id, hora: horaExcel, pista: pistaNom, l: eqL, v: eqV, resL, resV, error: cambioDetectado };
-        }
-      }
-    }
-
-    document.getElementById('alerta-cambio').style.display = alerta ? 'block' : 'none';
-    render(enc);
+    const partidos = parsearPartidos(data);
+    render(partidos);
 
     document.getElementById('status-dot').className = 'ok';
     document.getElementById('status-txt').innerText = 'EN VIVO';
-    document.getElementById('last-update').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('last-update').innerText =
+      new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
   } catch (e) {
     console.error(e);
     document.getElementById('status-txt').innerText = 'ERROR RED';
   }
 }
 
-function render(enc) {
-  let htmlP = '';
-  ESTRUCTURA.forEach(sec => {
-    htmlP += `<div class="section-label">${sec.dia}</div>`;
-    sec.ids.forEach(id => {
-      const p = enc[id];
-      if (!p) return;
-      const esMio = p.l.includes('NBF') || p.v.includes('NBF');
-      htmlP += `
-        <div class="partido-card ${esMio ? 'mi-partido' : ''}">
-          <div class="partido-hora">
-            <div class="${p.error ? 'hora-cambiada' : ''}">${p.hora}</div>
-            <div style="font-size:9px; color:var(--muted); margin-top:4px;">${p.pista}</div>
-          </div>
-          <div>
-            <div class="equipo ${p.l.includes('NBF') ? 'destacado' : ''}">${p.l}</div>
-            <div class="equipo ${p.v.includes('NBF') ? 'destacado' : ''}">${p.v}</div>
-          </div>
-          <div class="resultado">${(p.resL && p.resV) ? p.resL + '-' + p.resV : 'vs'}</div>
-        </div>`;
-    });
-  });
-  document.getElementById('panel-partidos').innerHTML = htmlP;
 
-  // Clasificación
-  const stats = {};
-  Object.values(enc).filter(p => p.id <= 80).forEach(p => {
-    [p.l, p.v].forEach(eq => { if(!stats[eq]) stats[eq] = {pj:0, pg:0, pf:0, pc:0, pts:0}; });
-    if(p.resL && p.resV && !isNaN(parseInt(p.resL))) {
-      const rl = parseInt(p.resL), rv = parseInt(p.resV);
-      stats[p.l].pj++; stats[p.v].pj++; stats[p.l].pf += rl; stats[p.l].pc += rv; stats[p.v].pf += rv; stats[p.v].pc += rl;
-      if(rl > rv) { stats[p.l].pg++; stats[p.l].pts += 2; stats[p.v].pts += 1; }
-      else { stats[p.v].pg++; stats[p.v].pts += 2; stats[p.l].pts += 1; }
+// 🔍 Detecta partidos automáticamente
+function parsearPartidos(data) {
+  const partidos = [];
+
+  data.forEach(row => {
+    const values = Object.values(row).map(v => (v || "").trim());
+
+    // Detectar filas que parecen partidos
+    const equipos = values.filter(v => v.length > 3 && isNaN(v));
+
+    if (equipos.length >= 2) {
+      const hora = values.find(v => v.match(/\d{1,2}:\d{2}/)) || "--:--";
+      const pista = values.find(v => v.match(/P\d+/i)) || "P?";
+
+      const nums = values.filter(v => !isNaN(parseInt(v)));
+      let resL = "", resV = "";
+
+      if (nums.length >= 2) {
+        resL = nums[0];
+        resV = nums[1];
+      }
+
+      partidos.push({
+        hora,
+        pista,
+        l: equipos[0],
+        v: equipos[1],
+        resL,
+        resV
+      });
     }
   });
-  const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc));
-  let htmlC = `<div class="tabla-wrap"><table><thead><tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
-  sorted.forEach(([nom, s]) => {
-    htmlC += `<tr class="${nom === MI_EQUIPO ? 'mi-fila' : ''}"><td>${nom}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf-s.pc}</td></tr>`;
-  });
-  document.getElementById('panel-clasificacion').innerHTML = htmlC + "</tbody></table></div>";
+
+  return partidos;
 }
 
-function showTab(name, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('panel-' + name).classList.add('active');
+
+// 🎨 Render partidos + clasificación
+function render(partidos) {
+
+  // ORDENAR POR HORA
+  partidos.sort((a,b) => a.hora.localeCompare(b.hora));
+
+  // PARTIDOS
+  let htmlP = '';
+
+  partidos.forEach(p => {
+    const esMio = p.l.includes('NBF') || p.v.includes('NBF');
+
+    htmlP += `
+      <div class="partido-card ${esMio ? 'mi-partido' : ''}">
+        <div class="partido-hora">
+          <div>${p.hora}</div>
+          <div style="font-size:9px; color:var(--muted); margin-top:4px;">${p.pista}</div>
+        </div>
+        <div>
+          <div class="equipo ${p.l.includes('NBF') ? 'destacado' : ''}">${p.l}</div>
+          <div class="equipo ${p.v.includes('NBF') ? 'destacado' : ''}">${p.v}</div>
+        </div>
+        <div class="resultado">
+          ${(p.resL && p.resV) ? p.resL + '-' + p.resV : 'vs'}
+        </div>
+      </div>`;
+  });
+
+  document.getElementById('panel-partidos').innerHTML = htmlP;
+
+
+  // 📊 CLASIFICACIÓN
+  const stats = {};
+
+  partidos.forEach(p => {
+    if (!stats[p.l]) stats[p.l] = {pj:0, pg:0, pf:0, pc:0, pts:0};
+    if (!stats[p.v]) stats[p.v] = {pj:0, pg:0, pf:0, pc:0, pts:0};
+
+    if (p.resL !== "" && p.resV !== "") {
+      const rl = parseInt(p.resL);
+      const rv = parseInt(p.resV);
+
+      stats[p.l].pj++;
+      stats[p.v].pj++;
+
+      stats[p.l].pf += rl;
+      stats[p.l].pc += rv;
+
+      stats[p.v].pf += rv;
+      stats[p.v].pc += rl;
+
+      if (rl > rv) {
+        stats[p.l].pg++;
+        stats[p.l].pts += 2;
+        stats[p.v].pts += 1;
+      } else {
+        stats[p.v].pg++;
+        stats[p.v].pts += 2;
+        stats[p.l].pts += 1;
+      }
+    }
+  });
+
+  const sorted = Object.entries(stats).sort(
+    (a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc)
+  );
+
+  let htmlC = `
+    <div class="tabla-wrap">
+    <table>
+    <thead>
+      <tr>
+        <th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th>
+      </tr>
+    </thead><tbody>`;
+
+  sorted.forEach(([nom, s]) => {
+    htmlC += `
+      <tr class="${nom === MI_EQUIPO ? 'mi-fila' : ''}">
+        <td>${nom}</td>
+        <td>${s.pj}</td>
+        <td>${s.pg}</td>
+        <td>${s.pts}</td>
+        <td>${s.pf - s.pc}</td>
+      </tr>`;
+  });
+
+  htmlC += "</tbody></table></div>";
+
+  document.getElementById('panel-clasificacion').innerHTML = htmlC;
 }
+
 
 cargar();
 setInterval(cargar, 60000);
 </script>
-</body>
-</html>
