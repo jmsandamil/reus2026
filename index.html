@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Live v4</title>
+<title>NBF Castelló · Monitor v5</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -12,31 +12,26 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
-  header { padding: 2rem 1.5rem; max-width: 950px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  header { padding: 2rem 1.5rem; max-width: 900px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
   h1 { font-size: 1.8rem; font-weight: 800; color: var(--accent-nbf); }
-  .status { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-align: right; }
+  .status { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); }
   #dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #444; margin-right: 5px; }
   #dot.live { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
-  .tabs { display: flex; max-width: 950px; margin: 0 auto; padding: 0 1.5rem; gap: 20px; border-bottom: 1px solid var(--border); }
+  .tabs { display: flex; max-width: 900px; margin: 0 auto; padding: 0 1.5rem; gap: 20px; border-bottom: 1px solid var(--border); }
   .tab { background: none; border: none; color: var(--muted); font-family: 'DM Mono'; padding: 10px 0; cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; font-size: 11px; }
   .tab.active { color: var(--accent-nbf); border-bottom-color: var(--accent-nbf); }
-  main { max-width: 950px; margin: 1.5rem auto; padding: 0 1.5rem; }
+  main { max-width: 900px; margin: 1.5rem auto; padding: 0 1.5rem; }
   .panel { display: none; }
   .panel.active { display: block; }
   .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 10px; display: grid; grid-template-columns: 85px 1fr auto; align-items: center; gap: 1rem; }
-  .mi-partido { border-left: 4px solid var(--accent-nbf); background: linear-gradient(90deg, rgba(56,189,248,0.04), transparent); }
-  .time-col { font-family: 'DM Mono'; }
-  .time-main { font-size: 17px; color: var(--gold); display: block; }
-  .pista-sub { font-size: 9px; color: var(--muted); }
-  .teams-col { display: flex; flex-direction: column; gap: 4px; }
-  .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; }
+  .mi-partido { border-left: 4px solid var(--accent-nbf); background: rgba(56,189,248,0.04); }
+  .time-main { font-family: 'DM Mono'; font-size: 17px; color: var(--gold); display: block; }
+  .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; }
+  .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.4; }
   .team-name.nbf { color: var(--accent-nbf); }
-  .score-col { font-family: 'DM Mono'; font-size: 20px; font-weight: 800; color: var(--text); }
-  .clasi-table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; }
-  .clasi-table th { background: #1a2235; color: var(--muted); padding: 10px; text-align: left; font-size: 9px; }
-  .clasi-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+  .score-col { font-family: 'DM Mono'; font-size: 18px; font-weight: 800; color: var(--text); }
 </style>
 </head>
 <body>
@@ -44,8 +39,8 @@
 <header>
   <h1>NBF <span>Castelló</span></h1>
   <div class="status">
-    <div><span id="dot"></span> <span id="txt">CONECTANDO</span></div>
-    <div id="clock">--:--</div>
+    <span id="dot"></span> <span id="txt">CONECTANDO</span>
+    <div id="clock" style="margin-top:2px">--:--</div>
   </div>
 </header>
 
@@ -55,7 +50,7 @@
 </div>
 
 <main>
-  <div id="panel-partidos" class="panel active">Sincronizando con el cuadrante...</div>
+  <div id="panel-partidos" class="panel active">Cargando cuadrante oficial...</div>
   <div id="panel-clasificacion" class="panel"></div>
 </main>
 
@@ -66,48 +61,43 @@ const IDS = [71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83];
 
 async function cargar() {
   try {
-    const response = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
-    const csv = await response.text();
+    const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
+    const csv = await res.text();
     const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
     
-    const partidos = [];
+    let partidos = [];
+    
     IDS.forEach(id => {
       for (let f = 0; f < rows.length; f++) {
         const c = rows[f].indexOf(id.toString());
         if (c !== -1) {
-          // 1. BUSCAR HORA HACIA ATRÁS: Desde la columna del ID hacia la izquierda (Columna A)
-          let hora = "--:--";
-          for (let i = c; i >= 0; i--) {
-            if (rows[f][i] && rows[f][i].includes(':')) {
-              hora = rows[f][i];
+          // EXTRACCIÓN DIRECTA SEGÚN TU IMAGEN
+          // La hora está SIEMPRE en la Columna A (índice 0) de la misma fila
+          const horaRaw = rows[f][0];
+          
+          // Equipos en la fila superior (f-1)
+          const eqL = rows[f-1][c+1] || "TBD";
+          const eqV = rows[f-1][c+2] || "TBD";
+          
+          // Resultados en la fila actual
+          const resL = rows[f][c+1];
+          const resV = rows[f][c+2];
+
+          // Determinación del Día por fila (basado en el Excel real)
+          let dia = "Domingo 3 Mayo";
+          if (f < 30) dia = "Viernes 1 Mayo";
+          else if (f < 56) dia = "Sábado 2 Mayo";
+
+          // Nombre de la Pista (buscando hacia arriba en la misma columna)
+          let pista = "Pista";
+          for (let i = f; i >= 0; i--) {
+            if (rows[i][c] && rows[i][c].startsWith('P')) {
+              pista = rows[i][c];
               break;
             }
           }
-          // Si no la encuentra, por defecto la Columna A
-          if (hora === "--:--") hora = rows[f][0] || "--:--";
 
-          // 2. EQUIPOS (Fila superior)
-          const eqL = rows[f-1][c+1] || "TBD";
-          const eqV = rows[f-1][c+2] || "TBD";
-          const resL = rows[f][c+1] || "";
-          const resV = rows[f][c+2] || "";
-          
-          // 3. PISTA (Basado en la cabecera de la columna)
-          // Buscamos en las primeras filas del Excel algo que diga "PISTA" o "P1..."
-          let pista = "Pista";
-          for (let i = 0; i < 10; i++) {
-              if (rows[i] && rows[i][c] && rows[i][c].startsWith('P')) {
-                  pista = rows[i][c];
-                  break;
-              }
-          }
-
-          // 4. DÍA (Basado en la fila)
-          let dia = "Viernes 1";
-          if (f > 26) dia = "Sábado 2";
-          if (f > 54) dia = "Domingo 3";
-
-          partidos.push({ id, dia, hora, pista, eqL, eqV, resL, resV, fila: f });
+          partidos.push({ id, dia, hora: horaRaw, pista, eqL, eqV, resL, resV, f });
           break;
         }
       }
@@ -127,24 +117,27 @@ function render(partidos) {
   let html = '';
   let lastDia = '';
 
-  // Ordenamos por fila del excel para que el orden sea cronológico real
-  partidos.sort((a,b) => a.fila - b.fila).forEach(p => {
+  // Ordenar por fila (cronológico)
+  partidos.sort((a,b) => a.f - b.f).forEach(p => {
     if (p.dia !== lastDia) {
       lastDia = p.dia;
       html += `<div class="section-label">${p.dia}</div>`;
     }
-    const esMio = p.eqL.toUpperCase().includes('NBF') || p.eqV.toUpperCase().includes('NBF');
+    
+    const esNBF = p.eqL.toUpperCase().includes('NBF') || p.eqV.toUpperCase().includes('NBF');
+    const score = (p.resL && p.resV) ? `${p.resL}-${p.resV}` : 'vs';
+
     html += `
-      <div class="match-card ${esMio ? 'mi-partido' : ''}">
+      <div class="match-card ${esNBF ? 'mi-partido' : ''}">
         <div class="time-col">
-          <span class="time-main">${p.hora}</span>
+          <span class="time-main">${p.hora || '--:--'}</span>
           <span class="pista-sub">${p.pista}</span>
         </div>
         <div class="teams-col">
           <div class="team-name ${p.eqL.toUpperCase().includes('NBF') ? 'nbf' : ''}">${p.eqL}</div>
           <div class="team-name ${p.eqV.toUpperCase().includes('NBF') ? 'nbf' : ''}">${p.eqV}</div>
         </div>
-        <div class="score-col">${(p.resL && p.resV) ? p.resL + '-' + p.resV : 'vs'}</div>
+        <div class="score-col">${score}</div>
       </div>`;
   });
   pPanel.innerHTML = html;
