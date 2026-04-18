@@ -1,161 +1,33 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Live</title>
-
-<style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0a0f1e;
-  color:#fff;
-  padding:16px;
-}
-h1{color:#38bdf8}
-
-.card{
-  background:#111827;
-  padding:12px;
-  border-radius:10px;
-  margin-bottom:8px;
-  display:grid;
-  grid-template-columns:80px 1fr auto;
-  gap:10px;
-}
-.hora{color:#f0b429;font-weight:bold}
-.eq{font-size:14px}
-.res{font-weight:bold}
-.live{color:#4ade80}
-</style>
-</head>
-
-<body>
-
-<h1>NBF Castelló</h1>
-<div id="content">Cargando...</div>
-
 <script>
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=470734480';
+const PROXY = 'https://corsproxy.io/?';
 
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=470734480";
-const PROXY = "https://corsproxy.io/?";
+async function exportarJSON() {
+  try {
+    const response = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
+    const csv = await response.text();
 
-let ultimoJSON = "";
+    const rows = csv.split('\n').map((linea, fila) => {
+      return linea.split(',').map((celda, columna) => ({
+        fila,
+        columna,
+        valor: celda.trim().replace(/"/g, '')
+      }));
+    });
 
-// 🚀 CARGAR EXCEL → JSON
-async function cargarExcel(){
-  const res = await fetch(PROXY + encodeURIComponent(SHEET_URL));
-  const csv = await res.text();
+    console.log("JSON COMPLETO DEL EXCEL:");
+    console.log(rows);
 
-  return csv.split("\n").map(r =>
-    r.split(",").map(c => c.replace(/"/g,"").trim())
-  );
-}
+    document.body.innerHTML = `
+      <pre style="white-space:pre-wrap;color:white;background:#111;padding:20px;font-size:12px">
+${JSON.stringify(rows, null, 2)}
+      </pre>
+    `;
 
-
-// 🧠 EXTRAER PARTIDOS (CLAVE)
-function extraerPartidos(rows){
-
-  const IDS = new Set(["71","72","73","74","75","76","77","78","79","80","81","82","83"]);
-  const partidos = [];
-
-  for(let r=0;r<rows.length;r++){
-    for(let c=0;c<rows[r].length;c++){
-
-      const val = rows[r][c];
-
-      if(!IDS.has(val)) continue;
-
-      // 🕒 hora (columna A)
-      const hora = rows[r][0] || "--:--";
-
-      // 👥 equipos (fila de arriba)
-      const eq1 = rows[r-1]?.[c+1] || "???";
-      const eq2 = rows[r-1]?.[c+2] || "???";
-
-      // 📊 resultado
-      const res1 = rows[r]?.[c+1] || "";
-      const res2 = rows[r]?.[c+2] || "";
-
-      partidos.push({
-        id: val,
-        hora,
-        l: eq1,
-        v: eq2,
-        resL: res1,
-        resV: res2
-      });
-    }
-  }
-
-  return partidos;
-}
-
-
-// 🎨 RENDER
-function render(partidos){
-
-  let html = "";
-
-  partidos.sort((a,b)=>a.id-b.id);
-
-  partidos.forEach(p => {
-
-    const live = (p.resL === "" && p.resV === "");
-
-    html += `
-    <div class="card">
-      <div class="hora">${p.hora}</div>
-
-      <div>
-        <div class="eq">${p.l}</div>
-        <div class="eq">${p.v}</div>
-      </div>
-
-      <div class="res ${live ? "live":""}">
-        ${p.resL && p.resV ? p.resL+"-"+p.resV : "LIVE"}
-      </div>
-    </div>`;
-  });
-
-  document.getElementById("content").innerHTML = html;
-}
-
-
-// 🔄 CARGAR + CONTROL CAMBIOS
-async function cargar(){
-
-  try{
-
-    const rows = await cargarExcel();
-    console.log("ROWS:", rows);
-    const jsonString = JSON.stringify(rows);
-
-    if(jsonString === ultimoJSON){
-      console.log("sin cambios");
-      return;
-    }
-
-    ultimoJSON = jsonString;
-
-    const partidos = extraerPartidos(rows);
-
-    render(partidos);
-
-    console.log("actualizado");
-
-  }catch(e){
-    console.error(e);
+  } catch (error) {
+    console.error(error);
   }
 }
 
-
-// 🚀 INICIO
-cargar();
-setInterval(cargar, 30000);
-
+exportarJSON();
 </script>
-
-</body>
-</html>
