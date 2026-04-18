@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Monitor Oficial</title>
+<title>NBF Castelló · Debug Resultados</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -14,8 +14,7 @@
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
   header { padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
   h1 { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-  .status { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); }
-  #dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 10px #4ade80; margin-right: 5px; }
+  .debug-coord { color: #f87171; font-family: 'DM Mono'; font-size: 9px; font-weight: 400; margin-left: 3px; }
   
   main { max-width: 800px; margin: 0 auto; padding: 0 1.5rem; }
   .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
@@ -31,17 +30,17 @@
   .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; }
   .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.2; }
   .team-name.nbf { color: var(--accent); }
-  .score-col { font-family: 'DM Mono'; font-size: 20px; font-weight: 800; }
+  .score-col { font-family: 'DM Mono'; font-size: 16px; font-weight: 800; text-align: right; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>NBF <span>Castelló</span></h1>
-  <div class="status"><span id="dot"></span> EN VIVO <span id="clock" style="margin-left:10px"></span></div>
+  <div style="font-family:'DM Mono'; font-size:10px; color:var(--muted)">DEBUG MODE: RESULTADOS</div>
 </header>
 
-<main id="container">Sincronizando horarios...</main>
+<main id="container">Analizando celdas de puntuación...</main>
 
 <script>
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1536149592';
@@ -59,26 +58,27 @@ async function update() {
       for (let f = 0; f < rows.length; f++) {
         const c = rows[f].indexOf(id.toString());
         if (c !== -1) {
-          // --- LÓGICA DE HORA BUSQUEDA HACIA ARRIBA (ASCENSOR) ---
+          // --- HORA (MÉTODO ASCENSOR) ---
           let hora = "";
-          // Buscamos en la fila actual y hacia arriba hasta encontrar una hora
           for (let fBusca = f; fBusca >= 0; fBusca--) {
-            // Buscamos en las primeras 3 columnas de cada fila (donde suele estar la hora)
             for(let cBusca = 0; cBusca < 3; cBusca++) {
                if (rows[fBusca][cBusca] && rows[fBusca][cBusca].includes(':')) {
-                  hora = rows[fBusca][cBusca];
-                  break;
+                  hora = rows[fBusca][cBusca]; break;
                }
             }
             if (hora) break;
-            // Si subimos más de 5 filas y no hay hora, es que no hay hora para este bloque
             if (f - fBusca > 5) break; 
           }
 
+          // --- EQUIPOS ---
           const eqL = rows[f-1][c+1] || "TBD";
           const eqV = rows[f-1][c+2] || "TBD";
+
+          // --- RESULTADOS + COORDENADAS ---
           const resL = rows[f][c+1];
           const resV = rows[f][c+2];
+          const coordL = `(${f}:${c+1})`;
+          const coordV = `(${f}:${c+2})`;
 
           let dia = "Domingo 3 Mayo";
           if (f < 28) dia = "Viernes 1 Mayo";
@@ -91,14 +91,13 @@ async function update() {
             }
           }
 
-          matches.push({ f, dia, hora, pista, eqL, eqV, resL, resV });
+          matches.push({ f, dia, hora, pista, eqL, eqV, resL, resV, coordL, coordV });
           break;
         }
       }
     });
 
     render(matches);
-    document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   } catch (e) { console.error(e); }
 }
 
@@ -111,7 +110,10 @@ function render(matches) {
       html += `<div class="section-label">${m.dia}</div>`;
     }
     const esNBF = m.eqL.toUpperCase().includes('NBF') || m.eqV.toUpperCase().includes('NBF');
-    const score = (m.resL && m.resV) ? `${m.resL} - ${m.resV}` : 'vs';
+    
+    // Mostramos el valor de la celda y su coordenada en rojo
+    const displayResL = (m.resL || "-") + `<span class="debug-coord">${m.coordL}</span>`;
+    const displayResV = (m.resV || "-") + `<span class="debug-coord">${m.coordV}</span>`;
 
     html += `
       <div class="match-card ${esNBF ? 'mi-partido' : ''}">
@@ -123,7 +125,9 @@ function render(matches) {
           <div class="team-name ${m.eqL.toUpperCase().includes('NBF') ? 'nbf' : ''}">${m.eqL}</div>
           <div class="team-name ${m.eqV.toUpperCase().includes('NBF') ? 'nbf' : ''}">${m.eqV}</div>
         </div>
-        <div class="score-col">${score}</div>
+        <div class="score-col">
+          ${displayResL} <br> ${displayResV}
+        </div>
       </div>`;
   });
   document.getElementById('container').innerHTML = html;
