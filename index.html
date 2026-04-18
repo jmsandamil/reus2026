@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Monitor Pro</title>
+<title>NBF Castelló · Monitor Campos</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -12,36 +12,28 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
-  
   header { padding: 2rem 1.5rem; max-width: 850px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
   h1 { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-  .debug-coord { color: #f87171; font-family: 'DM Mono'; font-size: 8px; font-weight: 400; margin-left: 4px; }
+  .debug-coord { color: #f87171; font-family: 'DM Mono'; font-size: 8px; margin-left: 4px; }
   
-  /* TABS */
   .tabs { display: flex; max-width: 850px; margin: 0 auto; padding: 0 1.5rem; gap: 20px; border-bottom: 1px solid var(--border); }
-  .tab { background: none; border: none; color: var(--muted); font-family: 'DM Mono'; padding: 12px 0; cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; font-size: 11px; font-weight: 600; }
+  .tab { background: none; border: none; color: var(--muted); font-family: 'DM Mono'; padding: 12px 0; cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; font-size: 11px; }
   .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
   main { max-width: 850px; margin: 0 auto; padding: 1.5rem; }
   .panel { display: none; }
   .panel.active { display: block; }
 
-  /* PARTIDOS */
   .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 1rem; }
+
+  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 1rem; }
   .mi-partido { border-left: 4px solid var(--accent); background: linear-gradient(90deg, rgba(56,189,248,0.05), transparent); }
   .time-main { font-family: 'DM Mono'; font-size: 16px; color: var(--gold); display: block; }
-  .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
-  .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.6; }
+  .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; line-height: 1.2; }
+  .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.5; }
   .team-name.nbf { color: var(--accent); }
-  .score-col { font-family: 'DM Mono'; font-size: 16px; font-weight: 800; text-align: right; line-height: 1.6; padding-left: 15px; border-left: 1px solid var(--border); }
-
-  /* TABLA CLASIFICACIÓN */
-  table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; margin-top: 10px; }
-  th { text-align: left; color: var(--muted); font-size: 10px; padding: 10px; border-bottom: 2px solid var(--border); }
-  td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
-  .row-nbf { color: var(--accent); background: rgba(56,189,248,0.05); }
+  .score-col { font-family: 'DM Mono'; font-size: 15px; font-weight: 800; text-align: right; border-left: 1px solid var(--border); padding-left: 12px; }
 </style>
 </head>
 <body>
@@ -57,11 +49,10 @@
 </div>
 
 <main>
-  <div id="panel-partidos" class="panel active">Cargando calendario...</div>
-
+  <div id="panel-partidos" class="panel active">Cargando campos de juego...</div>
   <div id="panel-clasificacion" class="panel">
-    <div class="section-label">Fase de Grupos (U10F)</div>
-    <div id="clasi-table-container">Calculando resultados...</div>
+    <div class="section-label">Clasificación Pre-Mini A</div>
+    <div id="clasi-table-container">Cargando tabla...</div>
   </div>
 </main>
 
@@ -69,6 +60,9 @@
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1536149592';
 const PROXY = 'https://corsproxy.io/?';
 const IDS = [71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83];
+
+// Nombres de los campos para filtrar la búsqueda
+const CAMPOS_REALES = ["CIUTAT", "BARRI", "PLOMS", "GAUDI", "REUS"];
 
 async function update() {
   try {
@@ -90,22 +84,23 @@ async function update() {
                }
             }
             if (hora) break;
-            if (f - fb > 5) break; 
+            if (f - fb > 8) break; 
           }
 
-          // LUGAR / PISTA (BUSQUEDA VERTICAL)
-          let pista = "---"; let pCoord = "";
-          for (let fb = f; fb >= 0; fb--) {
-            if (rows[fb][c] && (rows[fb][c].startsWith('P') || rows[fb][c].includes('Pist'))) {
-              pista = rows[fb][c]; pCoord = `(${fb}:${c})`; break;
+          // LUGAR / PISTA (Filtrando por los nombres que me pasaste)
+          let campo = "Campo TBD"; let pCoord = "";
+          for (let fb = 0; fb < 10; fb++) { // Buscamos en las cabeceras (filas 0-10)
+            const celda = rows[fb][c] || "";
+            if (CAMPOS_REALES.some(keyword => celda.toUpperCase().includes(keyword))) {
+              campo = celda; pCoord = `(${fb}:${c})`; break;
             }
           }
 
           matches.push({
-            id: id, f: f, c: c,
+            id: id, f: f,
             dia: f < 28 ? "Viernes 1 Mayo" : (f < 55 ? "Sábado 2 Mayo" : "Domingo 3 Mayo"),
             hora, hCoord,
-            pista, pCoord,
+            pista: campo, pCoord,
             eqL: rows[f-1][c+1] || "TBD", coordEqL: `(${f-1}:${c+1})`,
             eqV: rows[f-1][c+2] || "TBD", coordEqV: `(${f-1}:${c+2})`,
             resL: rows[f][c+1], coordResL: `(${f}:${c+1})`,
@@ -151,11 +146,8 @@ function renderMatches(matches) {
 
 function renderClasi(matches) {
   const stats = {};
-  // Solo procesamos IDs 71 a 80 (Fase de grupos)
   matches.filter(m => m.id <= 80).forEach(m => {
-    [m.eqL, m.eqV].forEach(t => { 
-        if(t && t !== "TBD" && !stats[t]) stats[t] = {pj:0, pg:0, pf:0, pc:0, pts:0}; 
-    });
+    [m.eqL, m.eqV].forEach(t => { if(t && t !== "TBD" && !stats[t]) stats[t] = {pj:0, pg:0, pf:0, pc:0, pts:0}; });
     const rL = parseInt(m.resL); const rV = parseInt(m.resV);
     if(!isNaN(rL) && !isNaN(rV)) {
       stats[m.eqL].pj++; stats[m.eqV].pj++;
@@ -167,11 +159,12 @@ function renderClasi(matches) {
   });
 
   const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf - b[1].pc) - (a[1].pf - a[1].pc));
-  
-  let html = `<table><thead><tr><th>EQUIPO</th><th>PJ</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
+  let html = `<table style="width:100%; border-collapse:collapse; font-family:'DM Mono'; font-size:12px">
+    <thead><tr style="color:var(--muted); font-size:10px"><th style="text-align:left; padding:10px">EQUIPO</th><th>PJ</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
   sorted.forEach(([name, s]) => {
-    html += `<tr class="${name.toUpperCase().includes('NBF') ? 'row-nbf' : ''}">
-      <td><strong>${name}</strong></td><td>${s.pj}</td><td>${s.pts}</td><td>${s.pf - s.pc}</td>
+    html += `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:12px 10px; color:${name.toUpperCase().includes('NBF') ? 'var(--accent)' : 'inherit'}"><strong>${name}</strong></td>
+      <td style="text-align:center">${s.pj}</td><td style="text-align:center">${s.pts}</td><td style="text-align:center">${s.pf - s.pc}</td>
     </tr>`;
   });
   document.getElementById('clasi-table-container').innerHTML = html + `</tbody></table>`;
