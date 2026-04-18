@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Full Debugger</title>
+<title>NBF Castelló · Monitor Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -12,36 +12,58 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
+  
   header { padding: 2rem 1.5rem; max-width: 850px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
   h1 { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-  .debug-coord { color: #f87171; font-family: 'DM Mono'; font-size: 9px; font-weight: 400; margin-left: 5px; vertical-align: middle; }
+  .debug-coord { color: #f87171; font-family: 'DM Mono'; font-size: 8px; font-weight: 400; margin-left: 4px; }
   
-  main { max-width: 850px; margin: 0 auto; padding: 0 1.5rem; }
+  /* TABS */
+  .tabs { display: flex; max-width: 850px; margin: 0 auto; padding: 0 1.5rem; gap: 20px; border-bottom: 1px solid var(--border); }
+  .tab { background: none; border: none; color: var(--muted); font-family: 'DM Mono'; padding: 12px 0; cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; font-size: 11px; font-weight: 600; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  main { max-width: 850px; margin: 0 auto; padding: 1.5rem; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* PARTIDOS */
   .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-  .match-card { 
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; 
-    padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 100px 1fr auto; 
-    align-items: center; gap: 1.5rem; 
-  }
+  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 1rem; }
   .mi-partido { border-left: 4px solid var(--accent); background: linear-gradient(90deg, rgba(56,189,248,0.05), transparent); }
   .time-main { font-family: 'DM Mono'; font-size: 16px; color: var(--gold); display: block; }
+  .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
   .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.6; }
   .team-name.nbf { color: var(--accent); }
-  .score-col { font-family: 'DM Mono'; font-size: 16px; font-weight: 800; text-align: right; line-height: 1.6; border-left: 1px solid var(--border); padding-left: 15px; }
+  .score-col { font-family: 'DM Mono'; font-size: 16px; font-weight: 800; text-align: right; line-height: 1.6; padding-left: 15px; border-left: 1px solid var(--border); }
+
+  /* TABLA CLASIFICACIÓN */
+  table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; margin-top: 10px; }
+  th { text-align: left; color: var(--muted); font-size: 10px; padding: 10px; border-bottom: 2px solid var(--border); }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+  .row-nbf { color: var(--accent); background: rgba(56,189,248,0.05); }
 </style>
 </head>
 <body>
 
 <header>
   <h1>NBF <span>Castelló</span></h1>
-  <div style="font-family:'DM Mono'; font-size:9px; color:var(--muted); text-align:right">
-    MAPA DE CELDAS ACTIVADO<br>(FILA : COLUMNA)
-  </div>
+  <div id="clock" style="font-family:'DM Mono'; font-size:12px; color:var(--gold)">--:--</div>
 </header>
 
-<main id="container">Mapeando celdas del Excel...</main>
+<div class="tabs">
+  <button class="tab active" onclick="showTab('partidos', this)">Partidos</button>
+  <button class="tab" onclick="showTab('clasificacion', this)">Clasificación</button>
+</div>
+
+<main>
+  <div id="panel-partidos" class="panel active">Cargando calendario...</div>
+
+  <div id="panel-clasificacion" class="panel">
+    <div class="section-label">Fase de Grupos (U10F)</div>
+    <div id="clasi-table-container">Calculando resultados...</div>
+  </div>
+</main>
 
 <script>
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1536149592';
@@ -59,75 +81,107 @@ async function update() {
       for (let f = 0; f < rows.length; f++) {
         const c = rows[f].indexOf(id.toString());
         if (c !== -1) {
-          // 1. HORA (CON ASCENSOR)
+          // HORA (ASCENSOR)
           let hora = ""; let hCoord = "";
-          for (let fBusca = f; fBusca >= 0; fBusca--) {
-            for(let cBusca = 0; cBusca < 3; cBusca++) {
-               if (rows[fBusca][cBusca] && rows[fBusca][cBusca].includes(':')) {
-                  hora = rows[fBusca][cBusca]; hCoord = `(${fBusca}:${cBusca})`; break;
+          for (let fb = f; fb >= 0; fb--) {
+            for(let cb = 0; cb < 3; cb++) {
+               if (rows[fb][cb] && rows[fb][cb].includes(':')) {
+                  hora = rows[fb][cb]; hCoord = `(${fb}:${cb})`; break;
                }
             }
             if (hora) break;
-            if (f - fBusca > 5) break; 
+            if (f - fb > 5) break; 
           }
 
-          // 2. EQUIPOS + COORDENADAS
-          const eqL = rows[f-1][c+1] || "TBD";
-          const eqV = rows[f-1][c+2] || "TBD";
-          const coordEqL = `(${f-1}:${c+1})`;
-          const coordEqV = `(${f-1}:${c+2})`;
+          // LUGAR / PISTA (BUSQUEDA VERTICAL)
+          let pista = "---"; let pCoord = "";
+          for (let fb = f; fb >= 0; fb--) {
+            if (rows[fb][c] && (rows[fb][c].startsWith('P') || rows[fb][c].includes('Pist'))) {
+              pista = rows[fb][c]; pCoord = `(${fb}:${c})`; break;
+            }
+          }
 
-          // 3. RESULTADOS + COORDENADAS
-          const resL = rows[f][c+1] || "-";
-          const resV = rows[f][c+2] || "-";
-          const coordResL = `(${f}:${c+1})`;
-          const coordResV = `(${f}:${c+2})`;
-
-          let dia = "Domingo 3 Mayo";
-          if (f < 28) dia = "Viernes 1 Mayo";
-          else if (f < 55) dia = "Sábado 2 Mayo";
-
-          matches.push({ f, dia, hora, hCoord, eqL, coordEqL, eqV, coordEqV, resL, coordResL, resV, coordResV });
+          matches.push({
+            id: id, f: f, c: c,
+            dia: f < 28 ? "Viernes 1 Mayo" : (f < 55 ? "Sábado 2 Mayo" : "Domingo 3 Mayo"),
+            hora, hCoord,
+            pista, pCoord,
+            eqL: rows[f-1][c+1] || "TBD", coordEqL: `(${f-1}:${c+1})`,
+            eqV: rows[f-1][c+2] || "TBD", coordEqV: `(${f-1}:${c+2})`,
+            resL: rows[f][c+1], coordResL: `(${f}:${c+1})`,
+            resV: rows[f][c+2], coordResV: `(${f}:${c+2})`
+          });
           break;
         }
       }
     });
 
-    render(matches);
+    renderMatches(matches);
+    renderClasi(matches);
+    document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   } catch (e) { console.error(e); }
 }
 
-function render(matches) {
-  let html = '';
-  let lastDia = '';
+function renderMatches(matches) {
+  let html = ''; let lastDia = '';
   matches.sort((a,b) => a.f - b.f).forEach(m => {
     if (m.dia !== lastDia) {
       lastDia = m.dia;
       html += `<div class="section-label">${m.dia}</div>`;
     }
     const esNBF = m.eqL.toUpperCase().includes('NBF') || m.eqV.toUpperCase().includes('NBF');
-
     html += `
       <div class="match-card ${esNBF ? 'mi-partido' : ''}">
         <div class="time-col">
-          <span class="time-main">${m.hora || '--:--'}</span>
-          <span class="debug-coord">${m.hCoord}</span>
+          <span class="time-main">${m.hora || '--:--'}<span class="debug-coord">${m.hCoord}</span></span>
+          <span class="pista-sub">${m.pista}<span class="debug-coord">${m.pCoord}</span></span>
         </div>
         <div class="teams-col">
-          <div class="team-name ${m.eqL.toUpperCase().includes('NBF') ? 'nbf' : ''}">
-            ${m.eqL} <span class="debug-coord">${m.coordEqL}</span>
-          </div>
-          <div class="team-name ${m.eqV.toUpperCase().includes('NBF') ? 'nbf' : ''}">
-            ${m.eqV} <span class="debug-coord">${m.coordEqV}</span>
-          </div>
+          <div class="team-name ${m.eqL.toUpperCase().includes('NBF') ? 'nbf' : ''}">${m.eqL}<span class="debug-coord">${m.coordEqL}</span></div>
+          <div class="team-name ${m.eqV.toUpperCase().includes('NBF') ? 'nbf' : ''}">${m.eqV}<span class="debug-coord">${m.coordEqV}</span></div>
         </div>
         <div class="score-col">
-          ${m.resL} <span class="debug-coord">${m.coordResL}</span> <br>
-          ${m.resV} <span class="debug-coord">${m.coordResV}</span>
+          ${m.resL || '-'}<span class="debug-coord">${m.coordResL}</span><br>
+          ${m.resV || '-'}<span class="debug-coord">${m.coordResV}</span>
         </div>
       </div>`;
   });
-  document.getElementById('container').innerHTML = html;
+  document.getElementById('panel-partidos').innerHTML = html;
+}
+
+function renderClasi(matches) {
+  const stats = {};
+  // Solo procesamos IDs 71 a 80 (Fase de grupos)
+  matches.filter(m => m.id <= 80).forEach(m => {
+    [m.eqL, m.eqV].forEach(t => { 
+        if(t && t !== "TBD" && !stats[t]) stats[t] = {pj:0, pg:0, pf:0, pc:0, pts:0}; 
+    });
+    const rL = parseInt(m.resL); const rV = parseInt(m.resV);
+    if(!isNaN(rL) && !isNaN(rV)) {
+      stats[m.eqL].pj++; stats[m.eqV].pj++;
+      stats[m.eqL].pf += rL; stats[m.eqL].pc += rV;
+      stats[m.eqV].pf += rV; stats[m.eqV].pc += rL;
+      if(rL > rV) { stats[m.eqL].pts += 2; stats[m.eqV].pts += 1; } 
+      else { stats[m.eqV].pts += 2; stats[m.eqL].pts += 1; }
+    }
+  });
+
+  const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf - b[1].pc) - (a[1].pf - a[1].pc));
+  
+  let html = `<table><thead><tr><th>EQUIPO</th><th>PJ</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
+  sorted.forEach(([name, s]) => {
+    html += `<tr class="${name.toUpperCase().includes('NBF') ? 'row-nbf' : ''}">
+      <td><strong>${name}</strong></td><td>${s.pj}</td><td>${s.pts}</td><td>${s.pf - s.pc}</td>
+    </tr>`;
+  });
+  document.getElementById('clasi-table-container').innerHTML = html + `</tbody></table>`;
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
 }
 
 update();
