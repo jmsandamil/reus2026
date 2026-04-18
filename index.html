@@ -3,361 +3,182 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>12 Hores Salle Reus 2026</title>
 
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-
 <style>
-:root{
-  --bg:#0a0f1e;
-  --card:#111827;
-  --card2:#1a2235;
-  --border:rgba(255,255,255,0.07);
-  --accent:#38bdf8;
-  --gold:#f0b429;
-  --text:#f1f5f9;
-  --muted:#64748b;
-  --green:#4ade80;
-}
+body { background:#0a0f1e; color:#fff; font-family:sans-serif; margin:0; }
+header { padding:20px; border-bottom:1px solid #222; }
+h1 { margin:0; }
 
-*{box-sizing:border-box}
-body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family:'Syne',sans-serif;
-}
+.tabs { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.tab { padding:6px 12px; background:#111; cursor:pointer; border-radius:6px; font-size:12px; }
+.tab.active { background:#38bdf8; color:#000; }
 
-header{
-  padding:20px;
-  border-bottom:1px solid var(--border);
-}
+.panel { display:none; padding:20px; }
+.panel.active { display:block; }
 
-h1{
-  margin:0;
-  font-size:22px;
-}
-
-.status{
-  font-family:'DM Mono';
-  font-size:11px;
-  color:var(--muted);
-  margin-top:6px;
-}
-
-.tabs{
-  display:flex;
-  gap:8px;
-  overflow-x:auto;
-  margin-top:15px;
-}
-
-.tab{
-  padding:8px 14px;
-  background:none;
-  border:none;
-  color:var(--muted);
-  cursor:pointer;
-}
-
-.tab.active{
-  color:var(--accent);
-  border-bottom:2px solid var(--accent);
-}
-
-.subtabs{
-  display:flex;
-  gap:10px;
-  margin-bottom:15px;
-}
-
-.subtab{
-  font-size:12px;
-  padding:6px 10px;
-  border-radius:6px;
-  background:var(--card2);
-  cursor:pointer;
-}
-
-.subtab.active{
-  background:var(--accent);
-  color:#000;
-}
-
-.panel{display:none;padding:20px}
-.panel.active{display:block}
-
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:10px;
-  padding:12px;
-  margin-bottom:8px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  transition:.2s;
-}
-
-.card:hover{
-  transform:scale(1.02);
-}
-
-.equipos{
-  display:flex;
-  flex-direction:column;
-  font-size:13px;
-}
-
-.mi{
-  color:var(--accent);
-  font-weight:700;
-}
-
-.resultado{
-  font-family:'DM Mono';
-  font-size:16px;
-  color:var(--accent);
-}
-
-.table{
-  width:100%;
-  border-collapse:collapse;
-  font-family:'DM Mono';
-}
-
-.table th,.table td{
-  padding:8px;
-  border-bottom:1px solid var(--border);
-}
-
-.highlight{
-  background:rgba(56,189,248,0.1);
-}
-
-.fade{
-  animation:fade .3s ease;
-}
-
-@keyframes fade{
-  from{opacity:0;transform:translateY(10px)}
-  to{opacity:1;transform:translateY(0)}
-}
+.card { background:#111827; margin-bottom:8px; padding:10px; border-radius:8px; display:flex; justify-content:space-between; }
+.clasif table { width:100%; border-collapse:collapse; font-size:12px; }
+.clasif td, .clasif th { padding:6px; border-bottom:1px solid #222; }
 </style>
 </head>
 
 <body>
 
 <header>
-  <h1>12 Hores Salle Reus 2026</h1>
-  <div class="status" id="status">Actualizando...</div>
-  <div id="tabs" class="tabs"></div>
+<h1>12 Hores Salle Reus 2026</h1>
+<div id="tabs" class="tabs"></div>
 </header>
 
-<main id="contenido"></main>
+<div id="contenido"></div>
 
 <script>
-
-const MI_EQUIPO = "NBF CASTELLÓ A";
-
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=470734480';
 const PROXY = 'https://corsproxy.io/?';
 
+let DATA = {};
 
-// ==================== DATA ====================
-async function getJSON(){
+function showTab(cat, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-'+cat).classList.add('active');
+}
+
+async function cargar(){
   const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
   const csv = await res.text();
 
-  return csv.split('\n').map((l,f)=>
-    l.split(',').map((c,i)=>({fila:f,columna:i,valor:c.trim().replace(/"/g,'')}))
-  );
+  const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
+
+  parsear(rows);
+  render();
 }
 
+function parsear(rows){
+  let categoriaActual = null;
 
-// ==================== PARSER ====================
-function parse(data){
+  rows.forEach(row => {
 
-  let cats=[], actual=null, ultimo=null;
-
-  data.forEach(row=>{
-    const c0=row[0].valor, c1=row[1].valor, c2=row[2].valor;
-
-    if(c0 && !c1 && !c2){
-      if(actual) cats.push(actual);
-      actual={nombre:c0, partidos:[], equipos:new Set()};
+    // detectar categoría
+    if(row[0] && row[0].includes('PREMINI') || row[0].includes('MINI') || row[0].includes('CADETE')){
+      categoriaActual = row[0];
+      if(!DATA[categoriaActual]){
+        DATA[categoriaActual] = { partidos: [], resultados: {} };
+      }
     }
 
-    if(c0==="PFA" && c1 && c2){
-      ultimo={local:c1, visitante:c2, id:null};
-      actual.partidos.push(ultimo);
-      actual.equipos.add(c1);
-      actual.equipos.add(c2);
-    }
-
-    if(!isNaN(parseInt(c0))){
-      if(ultimo) ultimo.id=parseInt(c0);
-    }
-
-  });
-
-  if(actual) cats.push(actual);
-  return cats;
-}
-
-
-// ==================== RESULTADOS ====================
-function resultados(data){
-
-  const r={};
-
-  data.forEach(row=>{
-    const id=parseInt(row[0].valor);
-
+    // detectar partidos (id numérico)
+    const id = parseInt(row[0]);
     if(!isNaN(id)){
-      const nums=row.map(c=>c.valor).filter(v=>!isNaN(v)&&v!=="");
+      const eq1 = row[1];
+      const eq2 = row[2];
+
+      if(eq1 && eq2){
+        DATA[categoriaActual].partidos.push({
+          id,
+          local:eq1,
+          visitante:eq2
+        });
+      }
+
+      const nums = row.slice(1,6).filter(x=>!isNaN(x) && x!=='');
       if(nums.length>=2){
-        r[id]={l:+nums[0], v:+nums[1]};
+        DATA[categoriaActual].resultados[id] = {
+          l: parseInt(nums[0]),
+          v: parseInt(nums[1])
+        }
       }
     }
   });
-
-  return r;
 }
 
+function render(){
+  const tabs = document.getElementById('tabs');
+  const cont = document.getElementById('contenido');
 
-// ==================== CLASIFICACION ====================
-function clasif(cat,res){
+  tabs.innerHTML = '';
+  cont.innerHTML = '';
 
-  const s={};
+  Object.keys(DATA).forEach((cat,i)=>{
+    tabs.innerHTML += `<div class="tab ${i==0?'active':''}" onclick="showTab('${cat}',this)">${cat}</div>`;
 
-  cat.equipos.forEach(e=>s[e]={pj:0,pg:0,pts:0,pf:0,pc:0});
+    const panel = document.createElement('div');
+    panel.className = 'panel '+(i==0?'active':'');
+    panel.id = 'panel-'+cat;
 
-  cat.partidos.forEach(p=>{
-    const r=res[p.id]; if(!r) return;
-
-    s[p.local].pj++; s[p.visitante].pj++;
-    s[p.local].pf+=r.l; s[p.local].pc+=r.v;
-    s[p.visitante].pf+=r.v; s[p.visitante].pc+=r.l;
-
-    if(r.l>r.v){
-      s[p.local].pg++; s[p.local].pts+=2; s[p.visitante].pts+=1;
-    }else{
-      s[p.visitante].pg++; s[p.visitante].pts+=2; s[p.local].pts+=1;
-    }
-  });
-
-  return Object.entries(s).sort((a,b)=>b[1].pts-a[1].pts || (b[1].pf-b[1].pc)-(a[1].pf-a[1].pc));
-}
-
-
-// ==================== UI ====================
-function render(cats,res){
-
-  const tabs=document.getElementById("tabs");
-  const cont=document.getElementById("contenido");
-
-  tabs.innerHTML=""; cont.innerHTML="";
-
-  cats.forEach((cat,i)=>{
-
-    const tab=document.createElement("button");
-    tab.className="tab"+(i===0?" active":"");
-    tab.innerText=cat.nombre;
-
-    tabs.appendChild(tab);
-
-    const panel=document.createElement("div");
-    panel.className="panel fade"+(i===0?" active":"");
-
-    let modo="partidos";
-
-    function pintar(){
-
-      let html=`
-        <div class="subtabs">
-          <div class="subtab ${modo==="partidos"?"active":""}" onclick="cambiar('partidos',${i})">Partidos</div>
-          <div class="subtab ${modo==="clasif"?"active":""}" onclick="cambiar('clasif',${i})">Clasificación</div>
-        </div>
-      `;
-
-      if(modo==="partidos"){
-        cat.partidos.forEach(p=>{
-          const r=res[p.id];
-
-          html+=`
-            <div class="card">
-              <div class="equipos">
-                <div class="${p.local===MI_EQUIPO?'mi':''}">${p.local}</div>
-                <div class="${p.visitante===MI_EQUIPO?'mi':''}">${p.visitante}</div>
-              </div>
-              <div class="resultado">${r?r.l+"-"+r.v:"vs"}</div>
-            </div>
-          `;
-        });
-      }
-
-      if(modo==="clasif"){
-        const tabla=clasif(cat,res);
-
-        html+=`<table class="table">
-        <tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr>`;
-
-        tabla.forEach(([e,s])=>{
-          html+=`
-            <tr class="${e===MI_EQUIPO?'highlight':''}">
-              <td>${e}</td>
-              <td>${s.pj}</td>
-              <td>${s.pg}</td>
-              <td>${s.pts}</td>
-              <td>${s.pf-s.pc}</td>
-            </tr>`;
-        });
-
-        html+="</table>";
-      }
-
-      panel.innerHTML=html;
-    }
-
-    window["cambiar"]=function(m,i2){
-      if(i!==i2) return;
-      modo=m;
-      pintar();
-    };
-
-    pintar();
-
-    tab.onclick=()=>{
-      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-      document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
-      tab.classList.add("active");
-      panel.classList.add("active");
-    };
+    panel.innerHTML = renderCategoria(cat);
 
     cont.appendChild(panel);
   });
-
 }
 
+function renderCategoria(cat){
+  const data = DATA[cat];
 
-// ==================== LOOP ====================
-async function actualizar(){
+  let html = `<h2>Partidos</h2>`;
 
-  document.getElementById("status").innerText="Actualizando...";
+  data.partidos.forEach(p=>{
+    const r = data.resultados[p.id];
 
-  const data=await getJSON();
-  const cats=parse(data);
-  const res=resultados(data);
+    html += `
+      <div class="card">
+        <div>${p.local} vs ${p.visitante}</div>
+        <div>${r ? r.l+'-'+r.v : 'vs'}</div>
+      </div>
+    `;
+  });
 
-  render(cats,res);
+  html += `<h2>Clasificación</h2>`;
+  html += clasificacion(data);
 
-  document.getElementById("status").innerText="En vivo · "+new Date().toLocaleTimeString();
+  return html;
 }
 
-actualizar();
-setInterval(actualizar,60000);
+function clasificacion(data){
+  const stats = {};
+
+  data.partidos.forEach(p=>{
+    stats[p.local] = stats[p.local] || {pj:0,pg:0,pts:0,dif:0};
+    stats[p.visitante] = stats[p.visitante] || {pj:0,pg:0,pts:0,dif:0};
+
+    const r = data.resultados[p.id];
+    if(r){
+      stats[p.local].pj++;
+      stats[p.visitante].pj++;
+
+      stats[p.local].dif += r.l - r.v;
+      stats[p.visitante].dif += r.v - r.l;
+
+      if(r.l > r.v){
+        stats[p.local].pg++; stats[p.local].pts+=2;
+        stats[p.visitante].pts+=1;
+      } else {
+        stats[p.visitante].pg++; stats[p.visitante].pts+=2;
+        stats[p.local].pts+=1;
+      }
+    }
+  });
+
+  const orden = Object.entries(stats).sort((a,b)=>b[1].pts - a[1].pts || b[1].dif - a[1].dif);
+
+  let html = `<div class="clasif"><table>
+  <tr><th>Equipo</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr>`;
+
+  orden.forEach(([e,s])=>{
+    html += `<tr><td>${e}</td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.dif}</td></tr>`;
+  });
+
+  html += `</table></div>`;
+  return html;
+}
+
+// refresco automático
+cargar();
+setInterval(()=>{
+  DATA = {};
+  cargar();
+}, 60000);
 
 </script>
 
