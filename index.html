@@ -2,30 +2,47 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Torneo Dashboard REAL</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<title>Torneo Live</title>
+
 <style>
-body{background:#0b1020;color:white;font-family:sans-serif}
-.tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px}
+body{background:#0b1020;color:white;font-family:sans-serif;margin:0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px;border-bottom:1px solid #222}
 .tab{padding:6px 10px;background:#1a2235;cursor:pointer;border-radius:6px;font-size:12px}
 .tab.active{background:#38bdf8;color:black}
 .panel{display:none;padding:10px}
 .panel.active{display:block}
 .card{background:#111827;padding:10px;margin:6px;border-radius:8px}
+.small{color:#aaa;font-size:11px}
 </style>
 </head>
+
 <body>
 
-<h3 style="padding:10px">TORNEO LIVE (REAL PARSER)</h3>
+<h3 style="padding:10px">🏀 Torneo Live Dashboard</h3>
+
 <div id="tabs"></div>
 <div id="content"></div>
 
 <script>
 
-const URL = "https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1972783032";
-const PROXY = "https://corsproxy.io/?";
+const URL = "https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/gviz/tq?tqx=out:html&gid=1972783032";
 
-let STRUCT = {};
+let DATA = {};
+
+async function load(){
+
+  const res = await fetch(URL);
+  const html = await res.text();
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  const rows = [...doc.querySelectorAll("tr")].map(tr =>
+    [...tr.querySelectorAll("td,th")].map(td => td.innerText.trim())
+  );
+
+  parse(rows);
+}
 
 function isCategory(row){
   const txt = row.join(" ");
@@ -40,31 +57,27 @@ function isCategory(row){
 }
 
 function isMatch(row){
-  return row.some(c => (c||"").includes("vs")) ||
-         row.some(c => (c||"").match(/\d{1,2}:\d{2}/));
+  return row.some(c => c.includes("vs")) || row.some(c => /\d{1,2}:\d{2}/.test(c));
 }
 
-function parse(data){
+function parse(rows){
 
-  STRUCT = {};
+  DATA = {};
   let cat = "SIN_CATEGORIA";
 
-  data.forEach(row => {
+  rows.forEach(r => {
 
-    const clean = row.map(c => (c||"").trim()).filter(Boolean);
-    if(clean.length === 0) return;
+    if(!r || r.length === 0) return;
 
-    if(isCategory(clean)){
-      cat = clean.join(" | ");
-      STRUCT[cat] = STRUCT[cat] || [];
+    if(isCategory(r)){
+      cat = r.join(" ");
+      DATA[cat] = DATA[cat] || [];
       return;
     }
 
-    if(isMatch(clean)){
-      STRUCT[cat] = STRUCT[cat] || [];
-      STRUCT[cat].push({
-        raw: clean
-      });
+    if(isMatch(r)){
+      DATA[cat] = DATA[cat] || [];
+      DATA[cat].push(r);
     }
   });
 
@@ -79,47 +92,40 @@ function render(){
   tabs.innerHTML = "";
   content.innerHTML = "";
 
-  Object.keys(STRUCT).forEach((cat,i)=>{
+  Object.keys(DATA).forEach((cat,i)=>{
 
-    const t = document.createElement("div");
-    t.className = "tab" + (i===0?" active":"");
-    t.innerText = cat;
+    const tab = document.createElement("div");
+    tab.className = "tab" + (i===0?" active":"");
+    tab.innerText = cat;
 
     const panel = document.createElement("div");
     panel.className = "panel" + (i===0?" active":"");
 
-    t.onclick = ()=>{
-      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-      document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
-      t.classList.add("active");
+    tab.onclick = ()=>{
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+      tab.classList.add("active");
       panel.classList.add("active");
     };
 
-    STRUCT[cat].forEach(m=>{
-      const d = document.createElement("div");
-      d.className="card";
-      d.innerHTML = `<pre>${JSON.stringify(m.raw,null,2)}</pre>`;
-      panel.appendChild(d);
+    DATA[cat].forEach(m=>{
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <div>${m.join(" | ")}</div>
+      `;
+      panel.appendChild(div);
     });
 
-    tabs.appendChild(t);
+    tabs.appendChild(tab);
     content.appendChild(panel);
   });
 }
 
-async function load(){
-
-  const res = await fetch(PROXY + encodeURIComponent(URL + "&t=" + Date.now()));
-  const csv = await res.text();
-
-  const parsed = Papa.parse(csv).data;
-
-  parse(parsed);
-}
-
 load();
-setInterval(load,60000);
+setInterval(load, 60000);
 
 </script>
+
 </body>
 </html>
