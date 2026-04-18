@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Monitor Final</title>
+<title>NBF Castelló · Monitor Oficial</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -14,14 +14,10 @@
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
   header { padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
   h1 { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-  .status { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-align: right; }
+  .status { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); }
   #dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 10px #4ade80; margin-right: 5px; }
   
-  .tabs { display: flex; max-width: 800px; margin: 0 auto; padding: 0 1.5rem; gap: 20px; border-bottom: 1px solid var(--border); }
-  .tab { background: none; border: none; color: var(--muted); font-family: 'DM Mono'; padding: 10px 0; cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; font-size: 11px; }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-  main { max-width: 800px; margin: 1.5rem auto; padding: 0 1.5rem; }
+  main { max-width: 800px; margin: 0 auto; padding: 0 1.5rem; }
   .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
@@ -33,8 +29,8 @@
   .mi-partido { border-left: 4px solid var(--accent); background: linear-gradient(90deg, rgba(56,189,248,0.05), transparent); }
   .time-main { font-family: 'DM Mono'; font-size: 18px; color: var(--gold); display: block; }
   .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; }
-  .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.4; }
-  .team-name.nbf { color: var(--accent); font-size: 14px; }
+  .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.2; }
+  .team-name.nbf { color: var(--accent); }
   .score-col { font-family: 'DM Mono'; font-size: 20px; font-weight: 800; }
 </style>
 </head>
@@ -42,17 +38,10 @@
 
 <header>
   <h1>NBF <span>Castelló</span></h1>
-  <div class="status">
-    <div><span id="dot"></span> EN VIVO</div>
-    <div id="clock">--:--</div>
-  </div>
+  <div class="status"><span id="dot"></span> EN VIVO <span id="clock" style="margin-left:10px"></span></div>
 </header>
 
-<div class="tabs">
-  <button class="tab active">Calendario Salle Reus</button>
-</div>
-
-<main id="container">Cargando partidos...</main>
+<main id="container">Sincronizando horarios...</main>
 
 <script>
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1536149592';
@@ -63,7 +52,6 @@ async function update() {
   try {
     const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
     const csv = await res.text();
-    // Limpieza agresiva de filas vacías y espacios
     const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
     
     let matches = [];
@@ -71,14 +59,20 @@ async function update() {
       for (let f = 0; f < rows.length; f++) {
         const c = rows[f].indexOf(id.toString());
         if (c !== -1) {
-          // --- NUEVA LÓGICA DE HORA ---
-          // Buscamos la hora en la fila actual recorriendo desde el principio
+          // --- LÓGICA DE HORA BUSQUEDA HACIA ARRIBA (ASCENSOR) ---
           let hora = "";
-          for (let i = 0; i < rows[f].length; i++) {
-            if (rows[f][i].includes(':')) {
-              hora = rows[f][i];
-              break;
+          // Buscamos en la fila actual y hacia arriba hasta encontrar una hora
+          for (let fBusca = f; fBusca >= 0; fBusca--) {
+            // Buscamos en las primeras 3 columnas de cada fila (donde suele estar la hora)
+            for(let cBusca = 0; cBusca < 3; cBusca++) {
+               if (rows[fBusca][cBusca] && rows[fBusca][cBusca].includes(':')) {
+                  hora = rows[fBusca][cBusca];
+                  break;
+               }
             }
+            if (hora) break;
+            // Si subimos más de 5 filas y no hay hora, es que no hay hora para este bloque
+            if (f - fBusca > 5) break; 
           }
 
           const eqL = rows[f-1][c+1] || "TBD";
@@ -90,10 +84,9 @@ async function update() {
           if (f < 28) dia = "Viernes 1 Mayo";
           else if (f < 55) dia = "Sábado 2 Mayo";
 
-          // Pista: Buscamos en las primeras filas de esa columna
           let pista = "Pista";
-          for (let i = 0; i < 10; i++) {
-            if (rows[i] && rows[i][c] && rows[i][c].startsWith('P')) {
+          for (let i = f; i >= 0; i--) {
+            if (rows[i][c] && (rows[i][c].startsWith('P') || rows[i][c].includes('Pist'))) {
               pista = rows[i][c]; break;
             }
           }
@@ -123,7 +116,7 @@ function render(matches) {
     html += `
       <div class="match-card ${esNBF ? 'mi-partido' : ''}">
         <div class="time-col">
-          <span class="time-main">${m.hora || 'S/H'}</span>
+          <span class="time-main">${m.hora || '--:--'}</span>
           <span class="pista-sub">${m.pista}</span>
         </div>
         <div class="teams-col">
