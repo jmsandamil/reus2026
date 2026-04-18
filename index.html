@@ -52,7 +52,7 @@
 </div>
 
 <main>
-  <div id="panel-partidos" class="panel active">Sincronizando con Excel...</div>
+  <div id="panel-partidos" class="panel active">Sincronizando...</div>
   <div id="panel-clasificacion" class="panel">
     <div id="clasi-table-container"></div>
   </div>
@@ -62,7 +62,7 @@
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1536149592';
 const PROXY = 'https://corsproxy.io/?';
 const IDS = [71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83];
-const KEYWORDS_PISTA = ["CIUTAT", "REUS", "PLOMS", "BARRI", "GAUDI", "PAVELLO"];
+const KEYWORDS_PISTA = ["CIUTAT", "REUS", "PLOMS", "BARRI", "GAUDI", "PAVELLO", "JOSEP", "MANYANET"];
 
 async function update() {
   try {
@@ -75,32 +75,34 @@ async function update() {
       for (let f = 0; f < rows.length; f++) {
         const c = rows[f].indexOf(id.toString());
         if (c !== -1) {
-          // 1. HORA (ASCENSOR MEJORADO)
+          // 1. HORA
           let hora = "--:--"; let hC = "";
           for (let fb = f; fb >= 0; fb--) {
             for(let cb = 0; cb < 5; cb++) {
               if (rows[fb][cb]?.includes(':')) { hora = rows[fb][cb]; hC = `(${fb}:${cb})`; break; }
             }
             if (hC) break;
-            if (f - fb > 8) break;
+            if (f - fb > 10) break;
           }
 
-          // 2. PISTA (RADAR TOTAL: ESCANEO DE FILA SUPERIOR)
-          let pista = "Pista por asignar"; let pC = "";
-          // Primero buscamos hacia arriba en su columna
+          // 2. PISTA (BUSQUEDA REVERSA EN FILAS DE CABECERA)
+          let pista = "Pista TBD"; let pC = "";
+          // Buscamos en las filas superiores donde suelen estar las pistas (fila 2, 28, 33, 37, 49, 55...)
+          // Buscamos hacia atrás desde la columna actual para captar la celda combinada
           for (let fb = f; fb >= 0; fb--) {
-            // Escaneamos la fila completa (fb) donde podría estar el nombre del campo
-            for (let cb = 0; cb < rows[fb].length; cb++) {
-              const val = rows[fb][cb]?.toUpperCase() || "";
-              if (KEYWORDS_PISTA.some(k => val.includes(k))) {
-                // Si la columna es menor o igual a la del partido, es su pista probable
-                if (cb <= c + 2) { 
-                  pista = rows[fb][cb]; pC = `(${fb}:${cb})`; 
+            // Solo si la fila tiene alguna palabra clave
+            const filaUnida = rows[fb].join(" ").toUpperCase();
+            if (KEYWORDS_PISTA.some(k => filaUnida.includes(k))) {
+              // Miramos desde la columna del partido hacia la izquierda
+              for (let cb = c; cb >= 0; cb--) {
+                const celda = rows[fb][cb]?.toUpperCase() || "";
+                if (KEYWORDS_PISTA.some(k => celda.includes(k))) {
+                  pista = rows[fb][cb]; pC = `(${fb}:${cb})`; break;
                 }
               }
             }
             if (pC) break;
-            if (f - fb > 20) break;
+            if (f - fb > 40) break;
           }
 
           matches.push({
@@ -159,7 +161,7 @@ function renderClasi(matches) {
     }
   });
   const sorted = Object.entries(s).sort((a,b) => b[1].pts - a[1].pts || b[1].dif - a[1].dif);
-  let h = `<table style="width:100%"><tr><th>EQUIPO</th><th style="text-align:center">PJ</th><th style="text-align:center">PTS</th><th style="text-align:center">+/-</th></tr>`;
+  let h = `<table><tr><th>EQUIPO</th><th style="text-align:center">PJ</th><th style="text-align:center">PTS</th><th style="text-align:center">+/-</th></tr>`;
   sorted.forEach(([name, data]) => {
     h += `<tr style="${name.toUpperCase().includes('NBF')?'color:var(--accent);background:rgba(56,189,248,0.05)':''}">
       <td><strong>${name}</strong></td><td style="text-align:center">${data.pj}</td><td style="text-align:center">${data.pts}</td><td style="text-align:center">${data.dif}</td></tr>`;
