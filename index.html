@@ -2,147 +2,76 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Torneo Live Dashboard PRO</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<title>Torneo Dashboard REAL</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
 <style>
-body {
-  margin:0;
-  font-family: system-ui;
-  background:#0b1020;
-  color:white;
-}
-
-header{
-  padding:20px;
-  border-bottom:1px solid #222;
-}
-
-.tabs{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  padding:10px;
-  border-bottom:1px solid #222;
-}
-
-.tab{
-  padding:8px 12px;
-  cursor:pointer;
-  background:#1a2235;
-  border-radius:6px;
-  font-size:12px;
-}
-
-.tab.active{
-  background:#38bdf8;
-  color:black;
-  font-weight:bold;
-}
-
-.panel{
-  display:none;
-  padding:15px;
-}
-
-.panel.active{
-  display:block;
-}
-
-.card{
-  background:#111827;
-  padding:10px;
-  border-radius:10px;
-  margin-bottom:8px;
-  border:1px solid #222;
-}
-
-.category-title{
-  margin-top:20px;
-  font-weight:bold;
-  color:#38bdf8;
-}
-
-button.export{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  padding:10px;
-  background:#38bdf8;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-}
+body{background:#0b1020;color:white;font-family:sans-serif}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px}
+.tab{padding:6px 10px;background:#1a2235;cursor:pointer;border-radius:6px;font-size:12px}
+.tab.active{background:#38bdf8;color:black}
+.panel{display:none;padding:10px}
+.panel.active{display:block}
+.card{background:#111827;padding:10px;margin:6px;border-radius:8px}
 </style>
 </head>
-
 <body>
 
-<header>
-  <h2>Torneo Live Dashboard PRO</h2>
-  <small id="status">cargando...</small>
-</header>
-
-<div id="tabs" class="tabs"></div>
-
+<h3 style="padding:10px">TORNEO LIVE (REAL PARSER)</h3>
+<div id="tabs"></div>
 <div id="content"></div>
-
-<button class="export" onclick="exportJSON()">Export JSON</button>
 
 <script>
 
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1972783032";
+const URL = "https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1972783032";
 const PROXY = "https://corsproxy.io/?";
 
-let DATA = {};
-let RAW_JSON = {};
+let STRUCT = {};
 
-function parseSheet(csv){
+function isCategory(row){
+  const txt = row.join(" ");
+  return txt.includes("PREMINI") ||
+         txt.includes("MFA") ||
+         txt.includes("MFB") ||
+         txt.includes("MFC") ||
+         txt.includes("MMB") ||
+         txt.includes("PFA") ||
+         txt.includes("PFC") ||
+         txt.includes("ESC");
+}
 
-  const parsed = Papa.parse(csv).data;
+function isMatch(row){
+  return row.some(c => (c||"").includes("vs")) ||
+         row.some(c => (c||"").match(/\d{1,2}:\d{2}/));
+}
 
-  let currentCategory = "SIN_CATEGORIA";
+function parse(data){
 
-  DATA = {};
+  STRUCT = {};
+  let cat = "SIN_CATEGORIA";
 
-  parsed.forEach(row => {
-    if(!row) return;
+  data.forEach(row => {
 
     const clean = row.map(c => (c||"").trim()).filter(Boolean);
-
     if(clean.length === 0) return;
 
-    const line = clean.join(" ");
-
-    // 🔥 DETECTA CATEGORÍA (heurística real)
-    if(line.includes("PREMINI") ||
-       line.includes("MFA") ||
-       line.includes("MFB") ||
-       line.includes("MFC") ||
-       line.includes("MMB") ||
-       line.includes("PFA") ||
-       line.includes("PFC") ||
-       line.includes("ESC") ){
-
-      currentCategory = line;
-      DATA[currentCategory] = DATA[currentCategory] || [];
+    if(isCategory(clean)){
+      cat = clean.join(" | ");
+      STRUCT[cat] = STRUCT[cat] || [];
       return;
     }
 
-    // 🎯 DETECTA PARTIDOS
-    if(line.includes("Partido") || row.some(c => (c||"").includes("vs"))){
-
-      DATA[currentCategory] = DATA[currentCategory] || [];
-      DATA[currentCategory].push(row);
+    if(isMatch(clean)){
+      STRUCT[cat] = STRUCT[cat] || [];
+      STRUCT[cat].push({
+        raw: clean
+      });
     }
   });
 
-  buildUI();
+  render();
 }
 
-function buildUI(){
+function render(){
 
   const tabs = document.getElementById("tabs");
   const content = document.getElementById("content");
@@ -150,68 +79,47 @@ function buildUI(){
   tabs.innerHTML = "";
   content.innerHTML = "";
 
-  Object.keys(DATA).forEach((cat, i) => {
+  Object.keys(STRUCT).forEach((cat,i)=>{
 
-    // TAB
-    const btn = document.createElement("div");
-    btn.className = "tab" + (i===0 ? " active" : "");
-    btn.innerText = cat;
+    const t = document.createElement("div");
+    t.className = "tab" + (i===0?" active":"");
+    t.innerText = cat;
 
-    btn.onclick = () => {
-      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-      btn.classList.add("active");
-      document.getElementById("panel_"+i).classList.add("active");
+    const panel = document.createElement("div");
+    panel.className = "panel" + (i===0?" active":"");
+
+    t.onclick = ()=>{
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+      panel.classList.add("active");
     };
 
-    tabs.appendChild(btn);
-
-    // PANEL
-    const panel = document.createElement("div");
-    panel.className = "panel" + (i===0 ? " active" : "");
-    panel.id = "panel_"+i;
-
-    DATA[cat].forEach(p => {
-      const div = document.createElement("div");
-      div.className = "card";
-      div.innerHTML = `<pre>${JSON.stringify(p, null, 2)}</pre>`;
-      panel.appendChild(div);
+    STRUCT[cat].forEach(m=>{
+      const d = document.createElement("div");
+      d.className="card";
+      d.innerHTML = `<pre>${JSON.stringify(m.raw,null,2)}</pre>`;
+      panel.appendChild(d);
     });
 
+    tabs.appendChild(t);
     content.appendChild(panel);
   });
-
-  RAW_JSON = DATA;
 }
 
 async function load(){
 
-  try{
-    const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + "&t=" + Date.now()));
-    const csv = await res.text();
+  const res = await fetch(PROXY + encodeURIComponent(URL + "&t=" + Date.now()));
+  const csv = await res.text();
 
-    document.getElementById("status").innerText = "actualizado ✔";
+  const parsed = Papa.parse(csv).data;
 
-    parseSheet(csv);
-
-  }catch(e){
-    console.log(e);
-    document.getElementById("status").innerText = "error";
-  }
-}
-
-function exportJSON(){
-  const blob = new Blob([JSON.stringify(RAW_JSON,null,2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "torneo.json";
-  a.click();
+  parse(parsed);
 }
 
 load();
-setInterval(load, 60000);
+setInterval(load,60000);
 
 </script>
-
 </body>
 </html>
