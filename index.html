@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Debug Resultados</title>
+<title>NBF Castelló · Full Debugger</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -12,35 +12,36 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
-  header { padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  header { padding: 2rem 1.5rem; max-width: 850px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
   h1 { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-  .debug-coord { color: #f87171; font-family: 'DM Mono'; font-size: 9px; font-weight: 400; margin-left: 3px; }
+  .debug-coord { color: #f87171; font-family: 'DM Mono'; font-size: 9px; font-weight: 400; margin-left: 5px; vertical-align: middle; }
   
-  main { max-width: 800px; margin: 0 auto; padding: 0 1.5rem; }
+  main { max-width: 850px; margin: 0 auto; padding: 0 1.5rem; }
   .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
   .match-card { 
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px; 
-    padding: 1.2rem; margin-bottom: 10px; display: grid; grid-template-columns: 85px 1fr auto; 
-    align-items: center; gap: 1rem; 
+    padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 100px 1fr auto; 
+    align-items: center; gap: 1.5rem; 
   }
   .mi-partido { border-left: 4px solid var(--accent); background: linear-gradient(90deg, rgba(56,189,248,0.05), transparent); }
-  .time-main { font-family: 'DM Mono'; font-size: 18px; color: var(--gold); display: block; }
-  .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; }
-  .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.2; }
+  .time-main { font-family: 'DM Mono'; font-size: 16px; color: var(--gold); display: block; }
+  .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.6; }
   .team-name.nbf { color: var(--accent); }
-  .score-col { font-family: 'DM Mono'; font-size: 16px; font-weight: 800; text-align: right; }
+  .score-col { font-family: 'DM Mono'; font-size: 16px; font-weight: 800; text-align: right; line-height: 1.6; border-left: 1px solid var(--border); padding-left: 15px; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>NBF <span>Castelló</span></h1>
-  <div style="font-family:'DM Mono'; font-size:10px; color:var(--muted)">DEBUG MODE: RESULTADOS</div>
+  <div style="font-family:'DM Mono'; font-size:9px; color:var(--muted); text-align:right">
+    MAPA DE CELDAS ACTIVADO<br>(FILA : COLUMNA)
+  </div>
 </header>
 
-<main id="container">Analizando celdas de puntuación...</main>
+<main id="container">Mapeando celdas del Excel...</main>
 
 <script>
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1536149592';
@@ -58,40 +59,35 @@ async function update() {
       for (let f = 0; f < rows.length; f++) {
         const c = rows[f].indexOf(id.toString());
         if (c !== -1) {
-          // --- HORA (MÉTODO ASCENSOR) ---
-          let hora = "";
+          // 1. HORA (CON ASCENSOR)
+          let hora = ""; let hCoord = "";
           for (let fBusca = f; fBusca >= 0; fBusca--) {
             for(let cBusca = 0; cBusca < 3; cBusca++) {
                if (rows[fBusca][cBusca] && rows[fBusca][cBusca].includes(':')) {
-                  hora = rows[fBusca][cBusca]; break;
+                  hora = rows[fBusca][cBusca]; hCoord = `(${fBusca}:${cBusca})`; break;
                }
             }
             if (hora) break;
             if (f - fBusca > 5) break; 
           }
 
-          // --- EQUIPOS ---
+          // 2. EQUIPOS + COORDENADAS
           const eqL = rows[f-1][c+1] || "TBD";
           const eqV = rows[f-1][c+2] || "TBD";
+          const coordEqL = `(${f-1}:${c+1})`;
+          const coordEqV = `(${f-1}:${c+2})`;
 
-          // --- RESULTADOS + COORDENADAS ---
-          const resL = rows[f][c+1];
-          const resV = rows[f][c+2];
-          const coordL = `(${f}:${c+1})`;
-          const coordV = `(${f}:${c+2})`;
+          // 3. RESULTADOS + COORDENADAS
+          const resL = rows[f][c+1] || "-";
+          const resV = rows[f][c+2] || "-";
+          const coordResL = `(${f}:${c+1})`;
+          const coordResV = `(${f}:${c+2})`;
 
           let dia = "Domingo 3 Mayo";
           if (f < 28) dia = "Viernes 1 Mayo";
           else if (f < 55) dia = "Sábado 2 Mayo";
 
-          let pista = "Pista";
-          for (let i = f; i >= 0; i--) {
-            if (rows[i][c] && (rows[i][c].startsWith('P') || rows[i][c].includes('Pist'))) {
-              pista = rows[i][c]; break;
-            }
-          }
-
-          matches.push({ f, dia, hora, pista, eqL, eqV, resL, resV, coordL, coordV });
+          matches.push({ f, dia, hora, hCoord, eqL, coordEqL, eqV, coordEqV, resL, coordResL, resV, coordResV });
           break;
         }
       }
@@ -110,23 +106,24 @@ function render(matches) {
       html += `<div class="section-label">${m.dia}</div>`;
     }
     const esNBF = m.eqL.toUpperCase().includes('NBF') || m.eqV.toUpperCase().includes('NBF');
-    
-    // Mostramos el valor de la celda y su coordenada en rojo
-    const displayResL = (m.resL || "-") + `<span class="debug-coord">${m.coordL}</span>`;
-    const displayResV = (m.resV || "-") + `<span class="debug-coord">${m.coordV}</span>`;
 
     html += `
       <div class="match-card ${esNBF ? 'mi-partido' : ''}">
         <div class="time-col">
           <span class="time-main">${m.hora || '--:--'}</span>
-          <span class="pista-sub">${m.pista}</span>
+          <span class="debug-coord">${m.hCoord}</span>
         </div>
         <div class="teams-col">
-          <div class="team-name ${m.eqL.toUpperCase().includes('NBF') ? 'nbf' : ''}">${m.eqL}</div>
-          <div class="team-name ${m.eqV.toUpperCase().includes('NBF') ? 'nbf' : ''}">${m.eqV}</div>
+          <div class="team-name ${m.eqL.toUpperCase().includes('NBF') ? 'nbf' : ''}">
+            ${m.eqL} <span class="debug-coord">${m.coordEqL}</span>
+          </div>
+          <div class="team-name ${m.eqV.toUpperCase().includes('NBF') ? 'nbf' : ''}">
+            ${m.eqV} <span class="debug-coord">${m.coordEqV}</span>
+          </div>
         </div>
         <div class="score-col">
-          ${displayResL} <br> ${displayResV}
+          ${m.resL} <span class="debug-coord">${m.coordResL}</span> <br>
+          ${m.resV} <span class="debug-coord">${m.coordResV}</span>
         </div>
       </div>`;
   });
