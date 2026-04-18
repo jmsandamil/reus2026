@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Monitor Final v7</title>
+<title>NBF Castelló · Monitor Oficial</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -26,15 +26,15 @@
   .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 10px; display: grid; grid-template-columns: 140px 1fr auto; align-items: center; gap: 1rem; }
+  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 10px; display: grid; grid-template-columns: 145px 1fr auto; align-items: center; gap: 1rem; }
   .mi-partido { border-left: 4px solid var(--accent); background: linear-gradient(90deg, rgba(56,189,248,0.05), transparent); }
   .time-main { font-family: 'DM Mono'; font-size: 16px; color: var(--gold); display: block; }
-  .pista-sub { font-family: 'DM Mono'; font-size: 8px; color: var(--muted); text-transform: uppercase; margin-top: 4px; line-height: 1.3; }
+  .pista-sub { font-family: 'DM Mono'; font-size: 8px; color: var(--muted); text-transform: uppercase; margin-top: 4px; line-height: 1.3; font-weight: 500; }
   .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.4; }
   .team-name.nbf { color: var(--accent); }
   .score-col { font-family: 'DM Mono'; font-size: 15px; font-weight: 800; text-align: right; border-left: 1px solid var(--border); padding-left: 10px; min-width: 60px; }
   
-  table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; }
   th { text-align: left; padding: 10px; color: var(--muted); border-bottom: 2px solid var(--border); font-size: 10px; }
   td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
 </style>
@@ -47,14 +47,13 @@
 </header>
 
 <div class="tabs">
-  <button class="tab active" onclick="showTab('partidos', this)">Partidos</button>
+  <button class="tab active" onclick="showTab('partidos', this)">Calendario</button>
   <button class="tab" onclick="showTab('clasificacion', this)">Clasificación</button>
 </div>
 
 <main>
-  <div id="panel-partidos" class="panel active">Buscando campos y horarios...</div>
+  <div id="panel-partidos" class="panel active">Sincronizando con Excel...</div>
   <div id="panel-clasificacion" class="panel">
-    <div class="section-label">Ranking U10F</div>
     <div id="clasi-table-container"></div>
   </div>
 </main>
@@ -63,7 +62,7 @@
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1536149592';
 const PROXY = 'https://corsproxy.io/?';
 const IDS = [71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83];
-const PALABRAS_PISTA = ["CIUTAT", "REUS", "PLOMS", "BARRI", "GAUDI", "PAVELLO"];
+const KEYWORDS_PISTA = ["CIUTAT", "REUS", "PLOMS", "BARRI", "GAUDI", "PAVELLO"];
 
 async function update() {
   try {
@@ -76,30 +75,32 @@ async function update() {
       for (let f = 0; f < rows.length; f++) {
         const c = rows[f].indexOf(id.toString());
         if (c !== -1) {
-          // 1. HORA (BÚSQUEDA EN FILA Y HACIA ARRIBA)
+          // 1. HORA (ASCENSOR MEJORADO)
           let hora = "--:--"; let hC = "";
           for (let fb = f; fb >= 0; fb--) {
-            for(let cb = 0; cb < 5; cb++) { // Ampliamos a las primeras 5 columnas
+            for(let cb = 0; cb < 5; cb++) {
               if (rows[fb][cb]?.includes(':')) { hora = rows[fb][cb]; hC = `(${fb}:${cb})`; break; }
             }
             if (hC) break;
             if (f - fb > 8) break;
           }
 
-          // 2. PISTA (BÚSQUEDA MULTI-COLUMNA HACIA ARRIBA)
-          let pista = "Campo por definir"; let pC = "";
-          // Buscamos en la columna del partido y las dos adyacentes (por celdas combinadas)
+          // 2. PISTA (RADAR TOTAL: ESCANEO DE FILA SUPERIOR)
+          let pista = "Pista por asignar"; let pC = "";
+          // Primero buscamos hacia arriba en su columna
           for (let fb = f; fb >= 0; fb--) {
-            for (let offset = -2; offset <= 2; offset++) {
-              let targetCol = c + offset;
-              if (targetCol < 0) continue;
-              const val = rows[fb][targetCol]?.toUpperCase() || "";
-              if (PALABRAS_PISTA.some(k => val.includes(k))) {
-                pista = rows[fb][targetCol]; pC = `(${fb}:${targetCol})`; break;
+            // Escaneamos la fila completa (fb) donde podría estar el nombre del campo
+            for (let cb = 0; cb < rows[fb].length; cb++) {
+              const val = rows[fb][cb]?.toUpperCase() || "";
+              if (KEYWORDS_PISTA.some(k => val.includes(k))) {
+                // Si la columna es menor o igual a la del partido, es su pista probable
+                if (cb <= c + 2) { 
+                  pista = rows[fb][cb]; pC = `(${fb}:${cb})`; 
+                }
               }
             }
             if (pC) break;
-            if (f - fb > 30) break; // Buscamos hasta arriba del todo
+            if (f - fb > 20) break;
           }
 
           matches.push({
@@ -147,7 +148,6 @@ function render(matches) {
 
 function renderClasi(matches) {
   const s = {};
-  // Solo fase de grupos (71-80)
   matches.filter(m => m.id <= 80).forEach(m => {
     [m.eqL, m.eqV].forEach(t => { if(t && t !== "TBD" && !s[t]) s[t] = {pj:0, pts:0, dif:0}; });
     const rL = parseInt(m.resL), rV = parseInt(m.resV);
@@ -159,10 +159,10 @@ function renderClasi(matches) {
     }
   });
   const sorted = Object.entries(s).sort((a,b) => b[1].pts - a[1].pts || b[1].dif - a[1].dif);
-  let h = `<table><tr><th>EQUIPO</th><th>PJ</th><th>PTS</th><th>+/-</th></tr>`;
+  let h = `<table style="width:100%"><tr><th>EQUIPO</th><th style="text-align:center">PJ</th><th style="text-align:center">PTS</th><th style="text-align:center">+/-</th></tr>`;
   sorted.forEach(([name, data]) => {
     h += `<tr style="${name.toUpperCase().includes('NBF')?'color:var(--accent);background:rgba(56,189,248,0.05)':''}">
-      <td><strong>${name}</strong></td><td>${data.pj}</td><td>${data.pts}</td><td>${data.dif}</td></tr>`;
+      <td><strong>${name}</strong></td><td style="text-align:center">${data.pj}</td><td style="text-align:center">${data.pts}</td><td style="text-align:center">${data.dif}</td></tr>`;
   });
   document.getElementById('clasi-table-container').innerHTML = h + `</table>`;
 }
