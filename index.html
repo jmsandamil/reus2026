@@ -3,69 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Scanner Reus</title>
+<title>NBF Castelló · Live Tracker v3</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0a0f1e; --surface: #111827; --border: rgba(255,255,255,0.08);
     --accent-nbf: #38bdf8; --accent-castello: #f472b6; --gold: #f0b429; --text: #f1f5f9;
-    --muted: #64748b; --red: #f87171;
+    --muted: #64748b;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
-
-  header { padding: 2rem 1.5rem; max-width: 950px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-end; }
-  h1 { font-size: 2rem; font-weight: 800; }
+  header { padding: 2rem 1.5rem; max-width: 950px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  h1 { font-size: 1.8rem; font-weight: 800; }
   h1 span { color: var(--accent-nbf); }
   .status { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-align: right; }
-  #dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #444; margin-right: 5px; }
-  #dot.live { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
-
+  #dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #444; margin-right: 5px; }
+  #dot.live { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
   .tabs { display: flex; max-width: 950px; margin: 0 auto; padding: 0 1.5rem; gap: 20px; border-bottom: 1px solid var(--border); }
-  .tab { background: none; border: none; color: var(--muted); font-family: 'DM Mono'; padding: 10px 0; cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab { background: none; border: none; color: var(--muted); font-family: 'DM Mono'; padding: 10px 0; cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; font-size: 11px; }
   .tab.active { color: var(--accent-nbf); border-bottom-color: var(--accent-nbf); }
-
-  main { max-width: 950px; margin: 2rem auto; padding: 0 1.5rem; }
+  main { max-width: 950px; margin: 1.5rem auto; padding: 0 1.5rem; }
   .panel { display: none; }
   .panel.active { display: block; }
-
-  .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2.5rem 0 1rem; display: flex; align-items: center; gap: 10px; }
+  .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-  /* CARD DISEÑADA SEGÚN EL EXCEL */
-  .match-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 80px 1fr auto;
-    align-items: center; gap: 1rem;
-  }
+  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 10px; display: grid; grid-template-columns: 80px 1fr auto; align-items: center; gap: 1rem; }
   .mi-partido { border-left: 4px solid var(--accent-nbf); background: linear-gradient(90deg, rgba(56,189,248,0.04), transparent); }
-  
   .time-col { font-family: 'DM Mono'; }
-  .time-main { font-size: 18px; color: var(--gold); display: block; }
-  .pista-sub { font-size: 9px; color: var(--muted); text-transform: uppercase; }
-
-  .teams-col { display: flex; flex-direction: column; gap: 5px; }
+  .time-main { font-size: 17px; color: var(--gold); display: block; }
+  .pista-sub { font-size: 9px; color: var(--muted); }
+  .teams-col { display: flex; flex-direction: column; gap: 4px; }
   .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; }
-  .team-name.nbf { color: var(--accent-nbf); font-size: 14px; }
-  .team-name.highlight { color: var(--text); }
-
-  .score-col { font-family: 'DM Mono'; font-size: 20px; font-weight: 800; color: var(--accent-nbf); }
-  .no-score { font-size: 10px; color: var(--muted); font-weight: 400; }
-
-  /* CLASIFICACIÓN */
-  .clasi-table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; margin-top: 1rem; }
-  .clasi-table th { background: #1a2235; color: var(--muted); padding: 10px; text-align: left; font-size: 10px; }
+  .team-name.nbf { color: var(--accent-nbf); }
+  .score-col { font-family: 'DM Mono'; font-size: 20px; font-weight: 800; color: var(--text); }
+  .clasi-table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; }
+  .clasi-table th { background: #1a2235; color: var(--muted); padding: 10px; text-align: left; font-size: 9px; }
   .clasi-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
-  .row-nbf { background: rgba(56,189,248,0.05); color: var(--accent-nbf); }
+  .row-nbf { color: var(--accent-nbf); background: rgba(56,189,248,0.05); }
 </style>
 </head>
 <body>
 
 <header>
-  <div>
-    <div style="font-family:'DM Mono'; font-size:10px; color:var(--muted); margin-bottom:4px;">SALLE REUS 2026</div>
-    <h1><span>NBF</span> Castelló</h1>
-  </div>
+  <h1><span>NBF</span> Castelló</h1>
   <div class="status">
     <div><span id="dot"></span> <span id="txt">CONECTANDO</span></div>
     <div id="clock">--:--</div>
@@ -73,137 +53,130 @@
 </header>
 
 <div class="tabs">
-  <button class="tab active" onclick="showTab('partidos',this)">PARTIDOS</button>
-  <button class="tab" onclick="showTab('clasificacion',this)">CLASIFICACIÓN</button>
+  <button class="tab active" onclick="showTab('partidos',this)">Partidos</button>
+  <button class="tab" onclick="showTab('clasificacion',this)">Clasificación</button>
 </div>
 
 <main>
-  <div id="panel-partidos" class="panel active">Buscando datos en el Excel...</div>
+  <div id="panel-partidos" class="panel active">Cargando datos del nuevo enlace...</div>
   <div id="panel-clasificacion" class="panel"></div>
 </main>
 
 <script>
-const URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2mak1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1536149592';
+// NUEVA URL CON EL GID CORRECTO (1536149592)
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1536149592';
 const PROXY = 'https://corsproxy.io/?';
+const IDS_A_BUSCAR = [71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83];
 
-// IDs de los partidos que queremos rastrear
-const MIS_PARTIDOS_IDS = [71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83];
-
-async function fetchData() {
+async function cargar() {
   const dot = document.getElementById('dot');
+  const txt = document.getElementById('txt');
   try {
-    const res = await fetch(PROXY + encodeURIComponent(URL + '&t=' + Date.now()));
-    const csv = await res.text();
+    const response = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
+    if (!response.ok) throw new Error();
+    const csv = await response.text();
+    
+    // Parseo manual para evitar errores de comas dentro de celdas
     const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g,'')));
     
-    const matches = processExcel(rows);
-    renderMatches(matches);
-    renderClasi(matches);
+    const partidos = [];
+    IDS_A_BUSCAR.forEach(id => {
+      let encontrado = false;
+      for (let f = 0; f < rows.length; f++) {
+        for (let c = 0; c < rows[f].length; c++) {
+          if (rows[f][c] === id.toString()) {
+            // HORA: Miramos la Columna A (índice 0) de esa misma fila
+            const hora = rows[f][0] || "--:--"; 
+            
+            // EQUIPOS: En la fila de ARRIBA del ID
+            // En tu Excel: ID está debajo de los nombres. Local (c+1), Visitante (c+2)
+            const eqL = (rows[f-1] && rows[f-1][c+1]) ? rows[f-1][c+1] : "TBD";
+            const eqV = (rows[f-1] && rows[f-1][c+2]) ? rows[f-1][c+2] : "TBD";
+            
+            // PUNTOS: Misma fila que el ID, celdas de la derecha
+            const resL = rows[f][c+1] || "";
+            const resV = rows[f][c+2] || "";
+            
+            let dia = "Domingo 3";
+            if (f < 30) dia = "Viernes 1";
+            else if (f < 60) dia = "Sábado 2";
 
+            const pistas = ["P1","P1","P2","P3","P4","P5","P6","P7","P8"];
+            const pista = pistas[Math.floor(c/3)] || "Pista";
+
+            partidos.push({ id, dia, hora, pista, eqL, eqV, resL, resV });
+            encontrado = true;
+            break; 
+          }
+        }
+        if (encontrado) break;
+      }
+    });
+
+    render(partidos);
     dot.className = 'live';
-    document.getElementById('txt').innerText = 'EN VIVO';
+    txt.innerText = 'EN VIVO';
     document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   } catch (e) {
     dot.className = '';
-    document.getElementById('txt').innerText = 'ERROR RED';
+    txt.innerText = 'ERROR DE ENLACE';
+    console.error(e);
   }
 }
 
-function processExcel(rows) {
-  let found = [];
-  
-  MIS_PARTIDOS_IDS.forEach(id => {
-    for (let f = 0; f < rows.length; f++) {
-      const c = rows[f].indexOf(id.toString());
-      if (c !== -1) {
-        // LÓGICA BASADA EN LA IMAGEN:
-        // 1. Hora: Está en la Columna A (índice 0) de la misma fila
-        const hora = rows[f][0] || "--:--";
-        
-        // 2. Equipos: Están en la fila de ARRIBA del ID
-        // El local está una columna a la derecha del hueco de la hora, el visitante al lado
-        const eqL = rows[f-1][c+1] || "TBD";
-        const eqV = rows[f-1][c+2] || "TBD";
-        
-        // 3. Resultados: Están en la misma fila que el ID, celdas contiguas
-        const resL = rows[f][c+1];
-        const resV = rows[f][c+2];
+function render(partidos) {
+  const pPanel = document.getElementById('panel-partidos');
+  if (partidos.length === 0) {
+    pPanel.innerHTML = "<p style='text-align:center; padding:20px; color:gray;'>No se han encontrado partidos. Revisa si los IDs (71-83) están en esta pestaña del Excel.</p>";
+    return;
+  }
 
-        // 4. Pista: Según la columna (en tu excel hay 8 columnas de juego principales)
-        const pistas = ["P1","P1","P2","P3","P4","P5","P6","P7","P8"];
-        const pistaIdx = Math.floor(c / 3);
-        const pista = pistas[pistaIdx] || "Pista Central";
-
-        // 5. Día: Por rangos de filas
-        let dia = "Domingo 3";
-        if (f < 28) dia = "Viernes 1";
-        else if (f < 54) dia = "Sábado 2";
-
-        found.push({ id, dia, hora, pista, eqL, eqV, resL, resV });
-        break;
-      }
-    }
-  });
-  return found;
-}
-
-function renderMatches(matches) {
-  const container = document.getElementById('panel-partidos');
   let html = '';
   let lastDia = '';
 
-  matches.sort((a,b) => a.id - b.id).forEach(m => {
-    if (m.dia !== lastDia) {
-      lastDia = m.dia;
-      html += `<div class="section-label">${m.dia}</div>`;
+  partidos.sort((a,b) => a.id - b.id).forEach(p => {
+    if (p.dia !== lastDia) {
+      lastDia = p.dia;
+      html += `<div class="section-label">${p.dia}</div>`;
     }
-
-    const esNBF = m.eqL.includes('NBF') || m.eqV.includes('NBF');
-    const marcador = (m.resL && m.resV) ? `${m.resL} - ${m.resV}` : '<span class="no-score">vs</span>';
+    const esMio = p.eqL.toUpperCase().includes('NBF') || p.eqV.toUpperCase().includes('NBF');
+    const marcador = (p.resL !== "" && p.resV !== "") ? `${p.resL} - ${p.resV}` : 'vs';
 
     html += `
-      <div class="match-card ${esNBF ? 'mi-partido' : ''}">
+      <div class="match-card ${esMio ? 'mi-partido' : ''}">
         <div class="time-col">
-          <span class="time-main">${m.hora}</span>
-          <span class="pista-sub">${m.pista}</span>
+          <span class="time-main">${p.hora}</span>
+          <span class="pista-sub">${p.pista}</span>
         </div>
         <div class="teams-col">
-          <div class="team-name ${m.eqL.includes('NBF') ? 'nbf' : 'highlight'}">${m.eqL}</div>
-          <div class="team-name ${m.eqV.includes('NBF') ? 'nbf' : 'highlight'}">${m.eqV}</div>
+          <div class="team-name ${p.eqL.toUpperCase().includes('NBF') ? 'nbf' : ''}">${p.eqL}</div>
+          <div class="team-name ${p.eqV.toUpperCase().includes('NBF') ? 'nbf' : ''}">${p.eqV}</div>
         </div>
         <div class="score-col">${marcador}</div>
-      </div>
-    `;
+      </div>`;
   });
-  container.innerHTML = html;
-}
+  pPanel.innerHTML = html;
 
-function renderClasi(matches) {
+  // Clasificación
   const stats = {};
-  // Solo contamos fase de grupos (IDs 71-80)
-  matches.filter(m => m.id <= 80).forEach(m => {
-    [m.eqL, m.eqV].forEach(t => { if(!stats[t]) stats[t] = {pj:0, pg:0, pf:0, pc:0, pts:0}; });
-    if(m.resL && m.resV && !isNaN(parseInt(m.resL))) {
-      const rl = parseInt(m.resL), rv = parseInt(m.resV);
-      stats[m.eqL].pj++; stats[m.eqV].pj++;
-      stats[m.eqL].pf += rl; stats[m.eqL].pc += rv;
-      stats[m.eqV].pf += rv; stats[m.eqV].pc += rl;
-      if(rl > rv) { stats[m.eqL].pg++; stats[m.eqL].pts += 2; stats[m.eqV].pts += 1; }
-      else { stats[m.eqV].pg++; stats[m.eqV].pts += 2; stats[m.eqL].pts += 1; }
+  partidos.filter(p => p.id <= 80).forEach(p => {
+    [p.eqL, p.eqV].forEach(t => { if(t !== "TBD" && !stats[t]) stats[t] = {pj:0, pg:0, pf:0, pc:0, pts:0}; });
+    if(stats[p.eqL] && p.resL !== "" && p.resV !== "") {
+      const rl = parseInt(p.resL), rv = parseInt(p.resV);
+      stats[p.eqL].pj++; stats[p.eqV].pj++;
+      stats[p.eqL].pf += rl; stats[p.eqL].pc += rv;
+      stats[p.eqV].pf += rv; stats[p.eqV].pc += rl;
+      if(rl > rv) { stats[p.eqL].pg++; stats[p.eqL].pts += 2; stats[p.eqV].pts += 1; }
+      else { stats[p.eqV].pg++; stats[p.eqV].pts += 2; stats[p.eqL].pts += 1; }
     }
   });
 
   const sorted = Object.entries(stats).sort((a,b) => b[1].pts - a[1].pts || (b[1].pf-b[1].pc) - (a[1].pf-a[1].pc));
-  
-  let html = `<div class="section-label">Clasificación Provisional</div><table class="clasi-table">
-    <thead><tr><th>EQUIPO</th><th>PJ</th><th>PG</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
-  
+  let htmlC = `<table class="clasi-table"><thead><tr><th>EQUIPO</th><th>PJ</th><th>PTS</th><th>+/-</th></tr></thead><tbody>`;
   sorted.forEach(([name, s]) => {
-    html += `<tr class="${name.includes('NBF') ? 'row-nbf' : ''}">
-      <td><strong>${name}</strong></td><td>${s.pj}</td><td>${s.pg}</td><td>${s.pts}</td><td>${s.pf-s.pc}</td>
-    </tr>`;
+    htmlC += `<tr class="${name.toUpperCase().includes('NBF') ? 'row-nbf' : ''}"><td>${name}</td><td>${s.pj}</td><td>${s.pts}</td><td>${s.pf-s.pc}</td></tr>`;
   });
-  document.getElementById('panel-clasificacion').innerHTML = html + `</tbody></table>`;
+  document.getElementById('panel-clasificacion').innerHTML = (sorted.length > 0) ? htmlC + "</tbody></table>" : "<p style='color:gray; padding:20px;'>Esperando resultados...</p>";
 }
 
 function showTab(name, btn) {
@@ -213,8 +186,8 @@ function showTab(name, btn) {
   document.getElementById('panel-' + name).classList.add('active');
 }
 
-fetchData();
-setInterval(fetchData, 60000);
+cargar();
+setInterval(cargar, 60000);
 </script>
 </body>
 </html>
