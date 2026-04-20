@@ -33,10 +33,6 @@
   .team-name { font-weight: 700; font-size: 13px; color: #94a3b8; line-height: 1.4; }
   .team-name.nbf { color: var(--accent); }
   .score-col { font-family: 'DM Mono'; font-size: 15px; font-weight: 800; text-align: right; border-left: 1px solid var(--border); padding-left: 10px; min-width: 60px; }
-  
-  table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 12px; }
-  th { text-align: left; padding: 10px; color: var(--muted); border-bottom: 2px solid var(--border); font-size: 10px; }
-  td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -52,7 +48,7 @@
 </div>
 
 <main>
-  <div id="panel-partidos" class="panel active">Verificando pistas...</div>
+  <div id="panel-partidos" class="panel active">Cargando...</div>
   <div id="panel-clasificacion" class="panel">
     <div id="clasi-table-container"></div>
   </div>
@@ -63,12 +59,11 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makp
 const PROXY = 'https://corsproxy.io/?';
 const IDS = [71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83];
 
-// LISTA DE PISTAS PARA VALIDAR
 const PISTAS_OK = [
-  "CN REUS PLOMS 1", "CN REUS PLOMS 2", "CN REUS PLOMS 3", 
-  "PLOMS 4", "PLOMS 5", "PLOMS (EXT) ESCOLA", "EXTERIOR",
-  "ESCOLA LA SALLE REUS", "CIUTAT DE REUS - BARRI GAUDÍ 1", 
-  "CIUTAT DE REUS - BARRI GAUDÍ 2", "ALBERICH I CASAS 1", "ALBERICH I CASAS 2"
+  "CN REUS PLOMS 1", "CN REUS PLOMS 2", "CN REUS PLOMS 3", "PLOMS 4", "PLOMS 5", 
+  "PLOMS (EXT) ESCOLA", "EXTERIOR", "ESCOLA LA SALLE REUS", 
+  "CIUTAT DE REUS - BARRI GAUDÍ 1", "CIUTAT DE REUS - BARRI GAUDÍ 2", 
+  "ALBERICH I CASAS 1", "ALBERICH I CASAS 2"
 ];
 
 async function update() {
@@ -82,30 +77,27 @@ async function update() {
       for (let f = 0; f < rows.length; f++) {
         const c = rows[f].indexOf(id.toString());
         if (c !== -1) {
-          // 1. HORA (Se mantiene igual, funciona bien)
+          // DETERMINAR FILA DE CABECERA SEGÚN EL DÍA
+          let filaCabecera = f < 28 ? 2 : (f < 55 ? 28 : 55);
+          
+          // 1. HORA
           let hora = "--:--"; let hC = "";
           for (let fb = f; fb >= 0; fb--) {
             for(let cb = 0; cb < 5; cb++) {
               if (rows[fb][cb]?.includes(':')) { hora = rows[fb][cb]; hC = `(${fb}:${cb})`; break; }
             }
             if (hC) break;
-            if (f - fb > 10) break;
           }
 
-          // 2. PISTA (NUEVA LÓGICA DE PROXIMIDAD VERTICAL)
-          // Buscamos solo unas pocas filas por encima del partido en su misma columna
+          // 2. PISTA (BUSQUEDA EN LA CABECERA DEL DÍA)
           let pista = "Pista TBD"; let pC = "";
-          for (let fb = f; fb >= (f - 15); fb--) { // Máximo 15 filas arriba
-            if (fb < 0) break;
-            // Miramos en su columna y un poco a la izquierda (por celdas combinadas)
-            for (let cb = c; cb >= Math.max(0, c - 2); cb--) {
-              const celda = rows[fb][cb]?.toUpperCase() || "";
-              const encontrada = PISTAS_OK.find(p => celda.includes(p.toUpperCase()));
-              if (encontrada) {
-                pista = encontrada; pC = `(${fb}:${cb})`; break;
-              }
+          // Buscamos desde la columna del partido hacia la izquierda en la fila de cabecera
+          for (let cb = c; cb >= 0; cb--) {
+            const celda = rows[filaCabecera][cb]?.toUpperCase() || "";
+            const encontrada = PISTAS_OK.find(p => celda.includes(p.toUpperCase()));
+            if (encontrada) {
+              pista = encontrada; pC = `(${filaCabecera}:${cb})`; break;
             }
-            if (pC) break;
           }
 
           matches.push({
@@ -137,13 +129,10 @@ function render(matches) {
           <span class="pista-sub">${m.pista}<span class="debug-coord">${m.pC}</span></span>
         </div>
         <div>
-          <div class="team-name ${m.eqL?.toUpperCase().includes('NBF')?'nbf':''}">${m.eqL}<span class="debug-coord">${m.cL}</span></div>
-          <div class="team-name ${m.eqV?.toUpperCase().includes('NBF')?'nbf':''}">${m.eqV}<span class="debug-coord">${m.cV}</span></div>
+          <div class="team-name ${m.eqL?.toUpperCase().includes('NBF')?'nbf':''}">${m.eqL}</div>
+          <div class="team-name ${m.eqV?.toUpperCase().includes('NBF')?'nbf':''}">${m.eqV}</div>
         </div>
-        <div class="score-col">
-          ${m.resL || '-'}<span class="debug-coord">${m.crL}</span><br>
-          ${m.resV || '-'}<span class="debug-coord">${m.crV}</span>
-        </div>
+        <div class="score-col">${m.resL || '-'}<br>${m.resV || '-'}</div>
       </div>`;
   });
   document.getElementById('panel-partidos').innerHTML = hMatch;
@@ -164,10 +153,10 @@ function renderClasi(matches) {
     }
   });
   const sorted = Object.entries(s).sort((a,b) => b[1].pts - a[1].pts || b[1].dif - a[1].dif);
-  let h = `<table><tr><th>EQUIPO</th><th style="text-align:center">PJ</th><th style="text-align:center">PTS</th><th style="text-align:center">+/-</th></tr>`;
+  let h = `<table style="width:100%; border-collapse:collapse; font-family:'DM Mono'; font-size:12px"><tr><th style="text-align:left; padding:10px; color:var(--muted)">EQUIPO</th><th style="text-align:center">PJ</th><th style="text-align:center">PTS</th><th style="text-align:center">+/-</th></tr>`;
   sorted.forEach(([name, data]) => {
-    h += `<tr style="${name.toUpperCase().includes('NBF')?'color:var(--accent);background:rgba(56,189,248,0.05)':''}">
-      <td><strong>${name}</strong></td><td style="text-align:center">${data.pj}</td><td style="text-align:center">${data.pts}</td><td style="text-align:center">${data.dif}</td></tr>`;
+    h += `<tr style="border-bottom:1px solid var(--border); ${name.toUpperCase().includes('NBF')?'color:var(--accent);background:rgba(56,189,248,0.05)':''}">
+      <td style="padding:12px 10px"><strong>${name}</strong></td><td style="text-align:center">${data.pj}</td><td style="text-align:center">${data.pts}</td><td style="text-align:center">${data.dif}</td></tr>`;
   });
   document.getElementById('clasi-table-container').innerHTML = h + `</table>`;
 }
