@@ -26,7 +26,7 @@
   .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 10px; display: grid; grid-template-columns: 160px 1fr auto; align-items: center; gap: 1rem; }
+  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 10px; display: grid; grid-template-columns: 165px 1fr auto; align-items: center; gap: 1rem; }
   .mi-partido { border-left: 4px solid var(--accent); background: linear-gradient(90deg, rgba(56,189,248,0.05), transparent); }
   .time-main { font-family: 'DM Mono'; font-size: 16px; color: var(--gold); display: block; }
   .pista-sub { font-family: 'DM Mono'; font-size: 8px; color: var(--muted); text-transform: uppercase; margin-top: 4px; line-height: 1.3; font-weight: 500; }
@@ -52,7 +52,7 @@
 </div>
 
 <main>
-  <div id="panel-partidos" class="panel active">Sincronizando pistas oficiales...</div>
+  <div id="panel-partidos" class="panel active">Verificando pistas...</div>
   <div id="panel-clasificacion" class="panel">
     <div id="clasi-table-container"></div>
   </div>
@@ -63,7 +63,7 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makp
 const PROXY = 'https://corsproxy.io/?';
 const IDS = [71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83];
 
-// LISTA ESTRICTA DE PISTAS
+// LISTA DE PISTAS PARA VALIDAR
 const PISTAS_OK = [
   "CN REUS PLOMS 1", "CN REUS PLOMS 2", "CN REUS PLOMS 3", 
   "PLOMS 4", "PLOMS 5", "PLOMS (EXT) ESCOLA", "EXTERIOR",
@@ -82,7 +82,7 @@ async function update() {
       for (let f = 0; f < rows.length; f++) {
         const c = rows[f].indexOf(id.toString());
         if (c !== -1) {
-          // 1. HORA
+          // 1. HORA (Se mantiene igual, funciona bien)
           let hora = "--:--"; let hC = "";
           for (let fb = f; fb >= 0; fb--) {
             for(let cb = 0; cb < 5; cb++) {
@@ -92,10 +92,13 @@ async function update() {
             if (f - fb > 10) break;
           }
 
-          // 2. PISTA (BUSQUEDA ESTRICTA)
+          // 2. PISTA (NUEVA LÓGICA DE PROXIMIDAD VERTICAL)
+          // Buscamos solo unas pocas filas por encima del partido en su misma columna
           let pista = "Pista TBD"; let pC = "";
-          for (let fb = f; fb >= 0; fb--) {
-            for (let cb = c; cb >= 0; cb--) { // De la columna del partido hacia la izquierda
+          for (let fb = f; fb >= (f - 15); fb--) { // Máximo 15 filas arriba
+            if (fb < 0) break;
+            // Miramos en su columna y un poco a la izquierda (por celdas combinadas)
+            for (let cb = c; cb >= Math.max(0, c - 2); cb--) {
               const celda = rows[fb][cb]?.toUpperCase() || "";
               const encontrada = PISTAS_OK.find(p => celda.includes(p.toUpperCase()));
               if (encontrada) {
@@ -103,7 +106,6 @@ async function update() {
               }
             }
             if (pC) break;
-            if (f - fb > 45) break; 
           }
 
           matches.push({
