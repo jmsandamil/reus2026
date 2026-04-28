@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · U10F</title>
+<title>NBF Castelló · Solo mis partidos</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -18,12 +18,12 @@
   .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--accent); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; letter-spacing: 1px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-  .match-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 110px 1fr 50px; align-items: center; gap: 1rem; }
+  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 120px 1fr 50px; align-items: center; gap: 1rem; }
   .time-main { font-family: 'DM Mono'; font-size: 18px; color: var(--gold); display: block; }
   .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; display: block; line-height: 1.2; }
   
   .team-name { font-weight: 700; font-size: 14px; color: #94a3b8; line-height: 1.4; }
-  .team-name.nbf { color: #fff; text-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+  .team-name.nbf { color: var(--text); border-left: 2px solid var(--accent); padding-left: 8px; }
   
   .score-col { font-family: 'DM Mono'; font-size: 18px; font-weight: 800; text-align: right; color: var(--gold); }
   .score-divider { height: 1px; background: var(--border); margin: 4px 0; }
@@ -33,11 +33,11 @@
 
 <header>
   <h1 style="font-size:1.4rem;">NBF <span style="color:var(--accent)">U10F</span></h1>
-  <div id="clock" style="font-family:'DM Mono'; font-size:12px; color:var(--gold)">00:00</div>
+  <div id="clock" style="font-family:'DM Mono'; font-size:12px; color:var(--gold)">--:--</div>
 </header>
 
 <main id="panel-partidos">
-  <div style="text-align:center; padding:2rem; color:var(--muted)">Leyendo equipos PFA...</div>
+  <div style="text-align:center; padding:2rem; color:var(--muted)">Leyendo celdas del Excel...</div>
 </main>
 
 <script>
@@ -45,14 +45,7 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makp
 const PROXY = 'https://corsproxy.io/?';
 const MIS_IDS = ["71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83"];
 
-// Mapeo manual basado en tu lista por si el CSV falla en leer la otra pestaña
-const EQUIPOS_PFA = {
-  "1": "STADIUM CASABLANCA A",
-  "2": "NBF CASTELLÓ A",
-  "3": "U10F Sant Gregori",
-  "4": "ESCOLA PUIGCERVER",
-  "5": "TGN"
-};
+const PISTAS_LISTA = ["PLOMS", "LA SALLE", "BARRI GAUDÍ", "ALBERICH", "EXTERIOR"];
 
 async function update() {
   try {
@@ -66,45 +59,29 @@ async function update() {
       row.forEach((cell, j) => {
         if (MIS_IDS.includes(cell)) {
           
-          // --- LÓGICA DE EXTRACCIÓN MEJORADA ---
-          // 1. Equipos (Basado en tu nueva estructura de lista)
-          // Si en la celda de abajo hay un nombre lo usamos, si no, es TBD
-          let eq1 = rows[i+1]?.[j+1] || "TBD";
-          let eq2 = rows[i+1]?.[j+2] || "TBD";
+          // ESTRUCTURA SEGÚN TU DESCRIPCIÓN:
+          // ID en Fila i, Columna j
+          // Categoría está ENCIMA del ID: rows[i-1][j]
+          // Equipos están a la derecha de categoría:
+          let eq1 = rows[i-1]?.[j+1] || "TBD";
+          let eq2 = rows[i-1]?.[j+2] || "TBD";
 
-          // Limpieza de nombres raros como "1r", "2n" o vacíos de debug
-          if (eq1.length < 3 && !eq1.includes('A')) eq1 = "Equipo " + eq1;
-          if (eq2.length < 3 && !eq2.includes('A')) eq2 = "Equipo " + eq2;
+          // Resultados están a la derecha del ID:
+          let s1 = rows[i]?.[j+1];
+          let s2 = rows[i]?.[j+2];
+          
+          const score1 = (s1 && !isNaN(s1) && s1 !== "") ? s1 : '-';
+          const score2 = (s2 && !isNaN(s2) && s2 !== "") ? s2 : '-';
 
-          // 2. Marcadores (Fila + 2)
-          let s1 = rows[i+2]?.[j+1] || "-";
-          let s2 = rows[i+2]?.[j+2] || "-";
-          if (isNaN(s1) || s1 === "") s1 = "-";
-          if (isNaN(s2) || s2 === "") s2 = "-";
-
-          // 3. Hora (Buscar hacia arriba en la columna 0-4)
+          // Buscar Hora (hacia arriba)
           let hora = "--:--";
           for (let k = i; k >= Math.max(0, i-12); k--) {
             const hFound = rows[k].slice(0,5).find(c => /^\d{1,2}:\d{2}/.test(c));
             if (hFound) { hora = hFound; break; }
           }
 
-          // 4. Pista (Buscar hacia arriba nombres de pistas conocidos)
-          let pista = "Pista TBD";
-          const pistas = ["PLOMS", "LA SALLE", "GAUDÍ", "ALBERICH", "EXTERIOR"];
-          let fP = false;
-          for (let k = i; k >= Math.max(0, i-20); k--) {
-            for (let cP = 0; cP < rows[k].length; cP++) {
-              const val = rows[k][cP]?.toUpperCase() || "";
-              if (pistas.some(p => val.includes(p))) {
-                pista = rows[k][cP]; fP = true; break;
-              }
-            }
-            if (fP) break;
-          }
-
-          // 5. Día
-          let dia = "Próximamente";
+          // Buscar Día (hacia arriba)
+          let dia = "Torneo";
           for (let k = i; k >= Math.max(0, i-60); k--) {
             const txt = rows[k].join(" ").toLowerCase();
             if (txt.includes("viernes")) { dia = "Viernes 1 Mayo"; break; }
@@ -112,7 +89,20 @@ async function update() {
             if (txt.includes("domingo")) { dia = "Domingo 3 Mayo"; break; }
           }
 
-          matches.push({ dia, hora, pista, eq1, eq2, s1, s2, orden: i });
+          // Buscar Pista (hacia arriba)
+          let pista = "Pista TBD";
+          let fP = false;
+          for (let k = i; k >= Math.max(0, i-25); k--) {
+            for (let col = 0; col < rows[k].length; col++) {
+              const val = rows[k][col]?.toUpperCase() || "";
+              if (PISTAS_LISTA.some(p => val.includes(p))) {
+                pista = rows[k][col]; fP = true; break;
+              }
+            }
+            if (fP) break;
+          }
+
+          matches.push({ dia, hora, pista, eq1, eq2, s1: score1, s2: score2, orden: i });
         }
       });
     });
@@ -126,7 +116,7 @@ function pintar(matches) {
   document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
   if (matches.length === 0) {
-    cont.innerHTML = `<div style="text-align:center; padding:2rem;">No se encontraron los IDs en esta hoja.</div>`;
+    cont.innerHTML = `<div style="text-align:center; padding:2rem;">No se encontraron los IDs en la hoja.</div>`;
     return;
   }
 
