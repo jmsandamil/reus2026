@@ -3,204 +3,165 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Monitor Oficial</title>
-
+<title>NBF Castelló · Solo mis partidos</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-
 <style>
-:root {
-  --bg: #0a0f1e; --surface: #111827; --border: rgba(255,255,255,0.08);
-  --accent: #38bdf8; --gold: #f0b429; --text: #f1f5f9; --muted: #64748b;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0f1e; --surface: #111827; --border: rgba(255,255,255,0.08);
+    --accent: #38bdf8; --gold: #f0b429; --text: #f1f5f9; --muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
+  header { padding: 1.5rem; max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  
+  main { max-width: 600px; margin: 0 auto; padding: 1rem 1.5rem; }
+  .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--accent); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; letter-spacing: 1px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Syne', sans-serif;
-  padding-bottom: 5rem;
-}
-
-header {
-  padding: 1.5rem;
-  max-width: 850px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-}
-
-.tabs {
-  display: flex;
-  max-width: 850px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  gap: 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.tab {
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-family: 'DM Mono';
-  padding: 12px 0;
-  cursor: pointer;
-}
-
-.tab.active {
-  color: var(--accent);
-  border-bottom: 2px solid var(--accent);
-}
-
-main {
-  max-width: 850px;
-  margin: 0 auto;
-  padding: 1rem 1.5rem;
-}
-
-.section-label {
-  font-family: 'DM Mono';
-  font-size: 10px;
-  color: var(--muted);
-  margin: 2rem 0 1rem;
-}
-
-.match-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 10px;
-  display: grid;
-  grid-template-columns: 140px 1fr 60px;
-  gap: 1rem;
-}
-
-.time-main { color: var(--gold); font-family: 'DM Mono'; }
-
-.team-name { font-weight: 700; }
-.team-name.nbf { color: var(--accent); }
-
-.score-col { text-align: right; font-family: 'DM Mono'; }
+  .match-card { background: var(--surface); border: 1px solid var(--accent); border-radius: 12px; padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 130px 1fr 50px; align-items: center; gap: 1rem; }
+  .time-main { font-family: 'DM Mono'; font-size: 18px; color: var(--gold); display: block; }
+  .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; display: block; line-height: 1.2; }
+  
+  .team-name { font-weight: 700; font-size: 14px; color: #94a3b8; line-height: 1.4; }
+  .team-name.nbf { color: var(--text); }
+  
+  .score-col { font-family: 'DM Mono'; font-size: 18px; font-weight: 800; text-align: right; color: var(--gold); }
+  .score-divider { height: 1px; background: var(--border); margin: 4px 0; }
 </style>
 </head>
-
 <body>
 
 <header>
-  <h1>NBF <span style="color:var(--accent)">CASTELLÓ</span></h1>
-  <div id="clock"></div>
+  <h1 style="font-size:1.4rem;">NBF <span style="color:var(--accent)">U10F</span></h1>
+  <div id="clock" style="font-family:'DM Mono'; font-size:12px; color:var(--gold)">00:00</div>
 </header>
 
-<div class="tabs">
-  <button class="tab active" onclick="showTab('partidos', this)">Calendario</button>
-  <button class="tab" onclick="showTab('clasificacion', this)">Clasificación</button>
-</div>
-
-<main>
-  <div id="panel-partidos">Cargando datos reales...</div>
-  <div id="panel-clasificacion" style="display:none"></div>
+<main id="panel-partidos">
+  <div style="text-align:center; padding:2rem; color:var(--muted)">Leyendo celdas del Excel...</div>
 </main>
 
 <script>
-const URL = "https://corsproxy.io/?https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/htmlview#gid=1972783032";
+// Usamos el GID 1972783032 que es el de la pestaña de calendario
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1972783032';
+const PROXY = 'https://corsproxy.io/?';
 
-const IDS = Array.from({length:13}, (_,i)=>71+i);
+// IDs específicos del 71 al 83
+const MIS_IDS = ["71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83"];
 
-async function update(){
-  const res = await fetch(URL);
-  const html = await res.text();
+const PISTAS_OK = [
+  "CN REUS PLOMS 1", "CN REUS PLOMS 2", "CN REUS PLOMS 3", "PLOMS 4", "PLOMS 5", 
+  "PLOMS (EXT) ESCOLA", "EXTERIOR", "ESCOLA LA SALLE REUS", 
+  "CIUTAT DE REUS - BARRI GAUDÍ 1", "CIUTAT DE REUS - BARRI GAUDÍ 2", 
+  "ALBERICH I CASAS 1", "ALBERICH I CASAS 2"
+];
 
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const cells = [...doc.querySelectorAll("td")].map(td=>td.innerText.trim());
+async function update() {
+  try {
+    const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
+    const csv = await res.text();
+    const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
 
-  let matches = [];
+    const matches = [];
 
-  IDS.forEach(id=>{
-    const idx = cells.findIndex(c => c == id);
-    if(idx !== -1){
-      
-      let eqL = cells[idx - 2] || "";
-      let eqV = cells[idx - 1] || "";
-      let resL = cells[idx + 1] || "-";
-      let resV = cells[idx + 2] || "-";
+    rows.forEach((row, i) => {
+      row.forEach((cell, j) => {
+        // Buscamos solo los IDs 71-83
+        if (MIS_IDS.includes(cell)) {
+          
+          let categoria = row[j-1] || "U10F"; 
+          let eq1 = row[j+1];
+          let eq2 = row[j+2];
 
-      // Buscar hora cerca
-      let hora = "--:--";
-      for(let i=idx; i>idx-50; i--){
-        if(cells[i] && cells[i].includes(":")){
-          hora = cells[i];
-          break;
+          // Marcadores en la fila de abajo
+          let r1 = rows[i+1]?.[j+1];
+          let r2 = rows[i+1]?.[j+2];
+          const s1 = (r1 && !isNaN(r1) && r1 !== "") ? r1 : '-';
+          const s2 = (r2 && !isNaN(r2) && r2 !== "") ? r2 : '-';
+
+          // Buscar hora (hacia arriba en columnas 0-3)
+          let hora = "--:--";
+          for (let k = i; k >= 0; k--) {
+            const hFound = rows[k].slice(0,4).find(c => /^\d{1,2}:\d{2}/.test(c));
+            if (hFound) { hora = hFound; break; }
+            if (i - k > 12) break;
+          }
+
+          // Buscar Día (hacia arriba)
+          let dia = "Torneo";
+          for (let k = i; k >= 0; k--) {
+            const txt = rows[k].join(" ").toLowerCase();
+            if (txt.includes("viernes")) { dia = "Viernes 1 Mayo"; break; }
+            if (txt.includes("sábado")) { dia = "Sábado 2 Mayo"; break; }
+            if (txt.includes("domingo")) { dia = "Domingo 3 Mayo"; break; }
+            if (i - k > 50) break;
+          }
+
+          // Buscar Pista (hacia arriba y cerca de la columna del partido)
+          let pista = "Pista TBD";
+          let fP = false;
+          for (let k = i; k >= 0; k--) {
+            for (let cP = Math.max(0, j-2); cP <= j+2; cP++) {
+              const val = rows[k][cP]?.toUpperCase() || "";
+              const mP = PISTAS_OK.find(p => val.includes(p));
+              if (mP) { pista = mP; fP = true; break; }
+            }
+            if (fP) break;
+            if (i - k > 30) break;
+          }
+
+          matches.push({ dia, hora, pista, categoria, eq1, eq2, s1, s2, orden: i });
         }
-      }
-
-      // Buscar pista cerca
-      let pista = "Pista";
-      for(let i=idx-20; i<idx; i++){
-        if(cells[i] && cells[i].length > 6 && cells[i].includes("REUS")){
-          pista = cells[i];
-        }
-      }
-
-      matches.push({
-        id,
-        hora,
-        pista,
-        eqL,
-        eqV,
-        resL,
-        resV
       });
-    }
-  });
+    });
 
-  render(matches);
+    pintar(matches);
+  } catch (e) { console.error(e); }
 }
 
-function render(matches){
-  let html = "";
+function pintar(matches) {
+  const cont = document.getElementById("panel-partidos");
+  document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-  matches.forEach(m=>{
-    const isNBF = (m.eqL+m.eqV).toUpperCase().includes("NBF");
+  if (matches.length === 0) {
+    cont.innerHTML = `<div style="text-align:center; padding:2rem;">No se encontraron los IDs 71-83 en la hoja.</div>`;
+    return;
+  }
+
+  // Ordenar por aparición en el Excel
+  matches.sort((a, b) => a.orden - b.orden);
+
+  let html = "";
+  let currentDia = "";
+
+  matches.forEach(m => {
+    if (m.dia !== currentDia) {
+      currentDia = m.dia;
+      html += `<div class="section-label">${m.dia}</div>`;
+    }
 
     html += `
-    <div class="match-card ${isNBF?'mi-partido':''}">
-      <div>
-        <div class="time-main">${m.hora}</div>
-        <div>${m.pista}</div>
+      <div class="match-card">
+        <div>
+          <span class="time-main">${m.hora}</span>
+          <span class="pista-sub">${m.pista}</span>
+          <span style="font-size:10px; color:var(--accent); font-family:'DM Mono'">${m.categoria}</span>
+        </div>
+        <div>
+          <div class="team-name ${m.eq1.toUpperCase().includes('NBF')?'nbf':''}">${m.eq1}</div>
+          <div class="team-name ${m.eq2.toUpperCase().includes('NBF')?'nbf':''}">${m.eq2}</div>
+        </div>
+        <div class="score-col">
+          ${m.s1}<div class="score-divider"></div>${m.s2}
+        </div>
       </div>
-
-      <div>
-        <div class="team-name ${m.eqL.includes('NBF')?'nbf':''}">${m.eqL}</div>
-        <div class="team-name ${m.eqV.includes('NBF')?'nbf':''}">${m.eqV}</div>
-      </div>
-
-      <div class="score-col">
-        ${m.resL}<br>${m.resV}
-      </div>
-    </div>`;
+    `;
   });
 
-  document.getElementById("panel-partidos").innerHTML = html;
-
-  document.getElementById("clock").innerText =
-    new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-}
-
-function showTab(name, btn){
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-  btn.classList.add("active");
-
-  document.getElementById("panel-partidos").style.display =
-    name==="partidos"?"block":"none";
-
-  document.getElementById("panel-clasificacion").style.display =
-    name==="clasificacion"?"block":"none";
+  cont.innerHTML = html;
 }
 
 update();
 setInterval(update, 60000);
 </script>
-
 </body>
 </html>
