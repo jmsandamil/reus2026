@@ -3,53 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DEBUG: NBF Castelló</title>
+<title>NBF Castelló · U10F</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0f1e; --surface: #111827; --border: rgba(255,255,255,0.15);
+    --bg: #0a0f1e; --surface: #111827; --border: rgba(255,255,255,0.08);
     --accent: #38bdf8; --gold: #f0b429; --text: #f1f5f9; --muted: #64748b;
-    --debug: #ef4444;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
-  header { padding: 1.5rem; max-width: 700px; margin: 0 auto; border-bottom: 1px solid var(--border); }
+  header { padding: 1.5rem; max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
   
-  main { max-width: 700px; margin: 0 auto; padding: 1rem 1.5rem; }
-  .debug-info { font-family: 'DM Mono'; font-size: 9px; color: var(--debug); margin-left: 5px; font-weight: normal; }
+  main { max-width: 600px; margin: 0 auto; padding: 1rem 1.5rem; }
+  .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--accent); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; letter-spacing: 1px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-  .match-card { 
-    background: var(--surface); 
-    border: 1px solid var(--border); 
-    border-radius: 12px; 
-    padding: 1.2rem; 
-    margin-bottom: 15px; 
-    display: grid; 
-    grid-template-columns: 140px 1fr 60px; 
-    align-items: center; 
-    gap: 1rem; 
-  }
+  .match-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 12px; padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 110px 1fr 50px; align-items: center; gap: 1rem; }
+  .time-main { font-family: 'DM Mono'; font-size: 18px; color: var(--gold); display: block; }
+  .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; display: block; line-height: 1.2; }
   
-  .time-main { font-family: 'DM Mono'; font-size: 16px; color: var(--gold); }
-  .pista-sub { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); display: block; margin-top: 4px; }
+  .team-name { font-weight: 700; font-size: 14px; color: #94a3b8; line-height: 1.4; }
+  .team-name.nbf { color: #fff; text-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
   
-  .team-row { display: flex; align-items: center; margin-bottom: 4px; }
-  .team-name { font-weight: 700; font-size: 14px; color: #94a3b8; }
-  .team-name.nbf { color: var(--accent); }
-  
-  .score-col { font-family: 'DM Mono'; font-size: 18px; text-align: right; color: var(--gold); border-left: 1px solid var(--border); }
-  .section-label { font-family: 'DM Mono'; color: var(--accent); margin: 2rem 0 1rem; font-size: 12px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+  .score-col { font-family: 'DM Mono'; font-size: 18px; font-weight: 800; text-align: right; color: var(--gold); }
+  .score-divider { height: 1px; background: var(--border); margin: 4px 0; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>DEBUG MODE <span style="color:var(--accent)">U10F</span></h1>
-  <p style="font-size:10px; color:var(--muted)">Mostrando [Fila, Columna] de cada celda leída</p>
+  <h1 style="font-size:1.4rem;">NBF <span style="color:var(--accent)">U10F</span></h1>
+  <div id="clock" style="font-family:'DM Mono'; font-size:12px; color:var(--gold)">00:00</div>
 </header>
 
 <main id="panel-partidos">
-  <div style="text-align:center; padding:2rem;">Cargando datos del Excel...</div>
+  <div style="text-align:center; padding:2rem; color:var(--muted)">Leyendo equipos PFA...</div>
 </main>
 
 <script>
@@ -57,15 +45,20 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makp
 const PROXY = 'https://corsproxy.io/?';
 const MIS_IDS = ["71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83"];
 
-const PISTAS_OK = ["CN REUS PLOMS", "PLOMS", "EXTERIOR", "LA SALLE", "BARRI GAUDÍ", "ALBERICH"];
+// Mapeo manual basado en tu lista por si el CSV falla en leer la otra pestaña
+const EQUIPOS_PFA = {
+  "1": "STADIUM CASABLANCA A",
+  "2": "NBF CASTELLÓ A",
+  "3": "U10F Sant Gregori",
+  "4": "ESCOLA PUIGCERVER",
+  "5": "TGN"
+};
 
 async function update() {
   try {
     const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
-    const csvText = await res.text();
-    
-    // Split por filas y luego por comas simple para el debug
-    const rows = csvText.split(/\r?\n/).map(line => line.split(',').map(c => c.replace(/"/g, '').trim()));
+    const csv = await res.text();
+    const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
 
     const matches = [];
 
@@ -73,103 +66,106 @@ async function update() {
       row.forEach((cell, j) => {
         if (MIS_IDS.includes(cell)) {
           
-          // --- DATOS DEL EQUIPO (Donde suele estar el error) ---
-          // Intentamos leer la celda de la derecha y la siguiente
-          const eq1_val = row[j+1] || "VACÍO";
-          const eq2_val = row[j+2] || "VACÍO";
+          // --- LÓGICA DE EXTRACCIÓN MEJORADA ---
+          // 1. Equipos (Basado en tu nueva estructura de lista)
+          // Si en la celda de abajo hay un nombre lo usamos, si no, es TBD
+          let eq1 = rows[i+1]?.[j+1] || "TBD";
+          let eq2 = rows[i+1]?.[j+2] || "TBD";
 
-          // --- MARCADORES (Fila inferior) ---
-          const s1_val = rows[i+1]?.[j+1] || "-";
-          const s2_val = rows[i+1]?.[j+2] || "-";
+          // Limpieza de nombres raros como "1r", "2n" o vacíos de debug
+          if (eq1.length < 3 && !eq1.includes('A')) eq1 = "Equipo " + eq1;
+          if (eq2.length < 3 && !eq2.includes('A')) eq2 = "Equipo " + eq2;
 
-          // --- HORA ---
+          // 2. Marcadores (Fila + 2)
+          let s1 = rows[i+2]?.[j+1] || "-";
+          let s2 = rows[i+2]?.[j+2] || "-";
+          if (isNaN(s1) || s1 === "") s1 = "-";
+          if (isNaN(s2) || s2 === "") s2 = "-";
+
+          // 3. Hora (Buscar hacia arriba en la columna 0-4)
           let hora = "--:--";
-          let horaCoord = "";
-          for (let k = i; k >= Math.max(0, i-15); k--) {
-            const found = rows[k].find(c => /^\d{1,2}:\d{2}/.test(c));
-            if (found) { 
-                hora = found; 
-                horaCoord = `[F:${k}, C:?]`; 
-                break; 
-            }
+          for (let k = i; k >= Math.max(0, i-12); k--) {
+            const hFound = rows[k].slice(0,5).find(c => /^\d{1,2}:\d{2}/.test(c));
+            if (hFound) { hora = hFound; break; }
           }
 
-          // --- PISTA ---
-          let pista = "TBD";
-          let pistaCoord = "";
-          let foundP = false;
+          // 4. Pista (Buscar hacia arriba nombres de pistas conocidos)
+          let pista = "Pista TBD";
+          const pistas = ["PLOMS", "LA SALLE", "GAUDÍ", "ALBERICH", "EXTERIOR"];
+          let fP = false;
           for (let k = i; k >= Math.max(0, i-20); k--) {
             for (let cP = 0; cP < rows[k].length; cP++) {
-              const val = rows[k][cP].toUpperCase();
-              if (PISTAS_OK.some(p => val.includes(p))) {
-                pista = rows[k][cP];
-                pistaCoord = `[F:${k}, C:${cP}]`;
-                foundP = true; break;
+              const val = rows[k][cP]?.toUpperCase() || "";
+              if (pistas.some(p => val.includes(p))) {
+                pista = rows[k][cP]; fP = true; break;
               }
             }
-            if (foundP) break;
+            if (fP) break;
           }
 
-          matches.push({
-            id: cell,
-            idCoord: `[F:${i}, C:${j}]`,
-            eq1: eq1_val, eq1Coord: `[F:${i}, C:${j+1}]`,
-            eq2: eq2_val, eq2Coord: `[F:${i}, C:${j+2}]`,
-            s1: s1_val, s1Coord: `[F:${i+1}, C:${j+1}]`,
-            s2: s2_val, s2Coord: `[F:${i+1}, C:${j+2}]`,
-            hora, horaCoord,
-            pista, pistaCoord,
-            orden: i
-          });
+          // 5. Día
+          let dia = "Próximamente";
+          for (let k = i; k >= Math.max(0, i-60); k--) {
+            const txt = rows[k].join(" ").toLowerCase();
+            if (txt.includes("viernes")) { dia = "Viernes 1 Mayo"; break; }
+            if (txt.includes("sábado")) { dia = "Sábado 2 Mayo"; break; }
+            if (txt.includes("domingo")) { dia = "Domingo 3 Mayo"; break; }
+          }
+
+          matches.push({ dia, hora, pista, eq1, eq2, s1, s2, orden: i });
         }
       });
     });
 
-    render(matches);
-  } catch (e) {
-    console.error(e);
-    document.getElementById("panel-partidos").innerHTML = "Error de conexión.";
-  }
+    pintar(matches);
+  } catch (e) { console.error(e); }
 }
 
-function render(matches) {
+function pintar(matches) {
   const cont = document.getElementById("panel-partidos");
+  document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
   if (matches.length === 0) {
-    cont.innerHTML = "No se encontraron los IDs 71-83. Revisa el GID de la pestaña.";
+    cont.innerHTML = `<div style="text-align:center; padding:2rem;">No se encontraron los IDs en esta hoja.</div>`;
     return;
   }
 
+  matches.sort((a, b) => a.orden - b.orden);
+
   let html = "";
-  matches.sort((a,b) => a.orden - b.orden).forEach(m => {
+  let currentDia = "";
+
+  matches.forEach(m => {
+    if (m.dia !== currentDia) {
+      currentDia = m.dia;
+      html += `<div class="section-label">${m.dia}</div>`;
+    }
+
+    const isNBF1 = m.eq1.toUpperCase().includes('NBF');
+    const isNBF2 = m.eq2.toUpperCase().includes('NBF');
+
     html += `
       <div class="match-card">
         <div>
-          <span class="time-main">${m.hora}</span><span class="debug-info">${m.horaCoord}</span>
-          <span class="pista-sub">${m.pista} <span class="debug-info">${m.pistaCoord}</span></span>
-          <div style="margin-top:10px; font-size:10px; color:var(--accent)">ID: ${m.id} <span class="debug-info">${m.idCoord}</span></div>
+          <span class="time-main">${m.hora}</span>
+          <span class="pista-sub">${m.pista}</span>
         </div>
         <div>
-          <div class="team-row">
-            <span class="team-name ${m.eq1.includes('NBF')?'nbf':''}">${m.eq1}</span>
-            <span class="debug-info">${m.eq1Coord}</span>
-          </div>
-          <div class="team-row">
-            <span class="team-name ${m.eq2.includes('NBF')?'nbf':''}">${m.eq2}</span>
-            <span class="debug-info">${m.eq2Coord}</span>
-          </div>
+          <div class="team-name ${isNBF1 ? 'nbf' : ''}">${m.eq1}</div>
+          <div class="team-name ${isNBF2 ? 'nbf' : ''}">${m.eq2}</div>
         </div>
         <div class="score-col">
-          <div>${m.s1} <div style="font-size:8px; color:var(--muted)">${m.s1Coord}</div></div>
-          <div style="height:1px; background:var(--border); margin:4px 0;"></div>
-          <div>${m.s2} <div style="font-size:8px; color:var(--muted)">${m.s2Coord}</div></div>
+          ${m.s1}<div class="score-divider"></div>${m.s2}
         </div>
       </div>
     `;
   });
+
   cont.innerHTML = html;
 }
 
 update();
+setInterval(update, 60000);
 </script>
 </body>
 </html>
