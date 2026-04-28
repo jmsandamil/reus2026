@@ -3,165 +3,173 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBF Castelló · Solo mis partidos</title>
+<title>DEBUG: NBF Castelló</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0f1e; --surface: #111827; --border: rgba(255,255,255,0.08);
+    --bg: #0a0f1e; --surface: #111827; --border: rgba(255,255,255,0.15);
     --accent: #38bdf8; --gold: #f0b429; --text: #f1f5f9; --muted: #64748b;
+    --debug: #ef4444;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding-bottom: 5rem; }
-  header { padding: 1.5rem; max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  header { padding: 1.5rem; max-width: 700px; margin: 0 auto; border-bottom: 1px solid var(--border); }
   
-  main { max-width: 600px; margin: 0 auto; padding: 1rem 1.5rem; }
-  .section-label { font-family: 'DM Mono'; font-size: 10px; color: var(--accent); text-transform: uppercase; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 10px; letter-spacing: 1px; }
-  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  main { max-width: 700px; margin: 0 auto; padding: 1rem 1.5rem; }
+  .debug-info { font-family: 'DM Mono'; font-size: 9px; color: var(--debug); margin-left: 5px; font-weight: normal; }
 
-  .match-card { background: var(--surface); border: 1px solid var(--accent); border-radius: 12px; padding: 1.2rem; margin-bottom: 12px; display: grid; grid-template-columns: 130px 1fr 50px; align-items: center; gap: 1rem; }
-  .time-main { font-family: 'DM Mono'; font-size: 18px; color: var(--gold); display: block; }
-  .pista-sub { font-family: 'DM Mono'; font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; display: block; line-height: 1.2; }
+  .match-card { 
+    background: var(--surface); 
+    border: 1px solid var(--border); 
+    border-radius: 12px; 
+    padding: 1.2rem; 
+    margin-bottom: 15px; 
+    display: grid; 
+    grid-template-columns: 140px 1fr 60px; 
+    align-items: center; 
+    gap: 1rem; 
+  }
   
-  .team-name { font-weight: 700; font-size: 14px; color: #94a3b8; line-height: 1.4; }
-  .team-name.nbf { color: var(--text); }
+  .time-main { font-family: 'DM Mono'; font-size: 16px; color: var(--gold); }
+  .pista-sub { font-family: 'DM Mono'; font-size: 10px; color: var(--muted); display: block; margin-top: 4px; }
   
-  .score-col { font-family: 'DM Mono'; font-size: 18px; font-weight: 800; text-align: right; color: var(--gold); }
-  .score-divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .team-row { display: flex; align-items: center; margin-bottom: 4px; }
+  .team-name { font-weight: 700; font-size: 14px; color: #94a3b8; }
+  .team-name.nbf { color: var(--accent); }
+  
+  .score-col { font-family: 'DM Mono'; font-size: 18px; text-align: right; color: var(--gold); border-left: 1px solid var(--border); }
+  .section-label { font-family: 'DM Mono'; color: var(--accent); margin: 2rem 0 1rem; font-size: 12px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1 style="font-size:1.4rem;">NBF <span style="color:var(--accent)">U10F</span></h1>
-  <div id="clock" style="font-family:'DM Mono'; font-size:12px; color:var(--gold)">00:00</div>
+  <h1>DEBUG MODE <span style="color:var(--accent)">U10F</span></h1>
+  <p style="font-size:10px; color:var(--muted)">Mostrando [Fila, Columna] de cada celda leída</p>
 </header>
 
 <main id="panel-partidos">
-  <div style="text-align:center; padding:2rem; color:var(--muted)">Leyendo celdas del Excel...</div>
+  <div style="text-align:center; padding:2rem;">Cargando datos del Excel...</div>
 </main>
 
 <script>
-// Usamos el GID 1972783032 que es el de la pestaña de calendario
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1972783032';
 const PROXY = 'https://corsproxy.io/?';
-
-// IDs específicos del 71 al 83
 const MIS_IDS = ["71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83"];
 
-const PISTAS_OK = [
-  "CN REUS PLOMS 1", "CN REUS PLOMS 2", "CN REUS PLOMS 3", "PLOMS 4", "PLOMS 5", 
-  "PLOMS (EXT) ESCOLA", "EXTERIOR", "ESCOLA LA SALLE REUS", 
-  "CIUTAT DE REUS - BARRI GAUDÍ 1", "CIUTAT DE REUS - BARRI GAUDÍ 2", 
-  "ALBERICH I CASAS 1", "ALBERICH I CASAS 2"
-];
+const PISTAS_OK = ["CN REUS PLOMS", "PLOMS", "EXTERIOR", "LA SALLE", "BARRI GAUDÍ", "ALBERICH"];
 
 async function update() {
   try {
     const res = await fetch(PROXY + encodeURIComponent(SHEET_URL + '&t=' + Date.now()));
-    const csv = await res.text();
-    const rows = csv.split('\n').map(r => r.split(',').map(c => c.trim().replace(/"/g, '')));
+    const csvText = await res.text();
+    
+    // Split por filas y luego por comas simple para el debug
+    const rows = csvText.split(/\r?\n/).map(line => line.split(',').map(c => c.replace(/"/g, '').trim()));
 
     const matches = [];
 
     rows.forEach((row, i) => {
       row.forEach((cell, j) => {
-        // Buscamos solo los IDs 71-83
         if (MIS_IDS.includes(cell)) {
           
-          let categoria = row[j-1] || "U10F"; 
-          let eq1 = row[j+1];
-          let eq2 = row[j+2];
+          // --- DATOS DEL EQUIPO (Donde suele estar el error) ---
+          // Intentamos leer la celda de la derecha y la siguiente
+          const eq1_val = row[j+1] || "VACÍO";
+          const eq2_val = row[j+2] || "VACÍO";
 
-          // Marcadores en la fila de abajo
-          let r1 = rows[i+1]?.[j+1];
-          let r2 = rows[i+1]?.[j+2];
-          const s1 = (r1 && !isNaN(r1) && r1 !== "") ? r1 : '-';
-          const s2 = (r2 && !isNaN(r2) && r2 !== "") ? r2 : '-';
+          // --- MARCADORES (Fila inferior) ---
+          const s1_val = rows[i+1]?.[j+1] || "-";
+          const s2_val = rows[i+1]?.[j+2] || "-";
 
-          // Buscar hora (hacia arriba en columnas 0-3)
+          // --- HORA ---
           let hora = "--:--";
-          for (let k = i; k >= 0; k--) {
-            const hFound = rows[k].slice(0,4).find(c => /^\d{1,2}:\d{2}/.test(c));
-            if (hFound) { hora = hFound; break; }
-            if (i - k > 12) break;
-          }
-
-          // Buscar Día (hacia arriba)
-          let dia = "Torneo";
-          for (let k = i; k >= 0; k--) {
-            const txt = rows[k].join(" ").toLowerCase();
-            if (txt.includes("viernes")) { dia = "Viernes 1 Mayo"; break; }
-            if (txt.includes("sábado")) { dia = "Sábado 2 Mayo"; break; }
-            if (txt.includes("domingo")) { dia = "Domingo 3 Mayo"; break; }
-            if (i - k > 50) break;
-          }
-
-          // Buscar Pista (hacia arriba y cerca de la columna del partido)
-          let pista = "Pista TBD";
-          let fP = false;
-          for (let k = i; k >= 0; k--) {
-            for (let cP = Math.max(0, j-2); cP <= j+2; cP++) {
-              const val = rows[k][cP]?.toUpperCase() || "";
-              const mP = PISTAS_OK.find(p => val.includes(p));
-              if (mP) { pista = mP; fP = true; break; }
+          let horaCoord = "";
+          for (let k = i; k >= Math.max(0, i-15); k--) {
+            const found = rows[k].find(c => /^\d{1,2}:\d{2}/.test(c));
+            if (found) { 
+                hora = found; 
+                horaCoord = `[F:${k}, C:?]`; 
+                break; 
             }
-            if (fP) break;
-            if (i - k > 30) break;
           }
 
-          matches.push({ dia, hora, pista, categoria, eq1, eq2, s1, s2, orden: i });
+          // --- PISTA ---
+          let pista = "TBD";
+          let pistaCoord = "";
+          let foundP = false;
+          for (let k = i; k >= Math.max(0, i-20); k--) {
+            for (let cP = 0; cP < rows[k].length; cP++) {
+              const val = rows[k][cP].toUpperCase();
+              if (PISTAS_OK.some(p => val.includes(p))) {
+                pista = rows[k][cP];
+                pistaCoord = `[F:${k}, C:${cP}]`;
+                foundP = true; break;
+              }
+            }
+            if (foundP) break;
+          }
+
+          matches.push({
+            id: cell,
+            idCoord: `[F:${i}, C:${j}]`,
+            eq1: eq1_val, eq1Coord: `[F:${i}, C:${j+1}]`,
+            eq2: eq2_val, eq2Coord: `[F:${i}, C:${j+2}]`,
+            s1: s1_val, s1Coord: `[F:${i+1}, C:${j+1}]`,
+            s2: s2_val, s2Coord: `[F:${i+1}, C:${j+2}]`,
+            hora, horaCoord,
+            pista, pistaCoord,
+            orden: i
+          });
         }
       });
     });
 
-    pintar(matches);
-  } catch (e) { console.error(e); }
+    render(matches);
+  } catch (e) {
+    console.error(e);
+    document.getElementById("panel-partidos").innerHTML = "Error de conexión.";
+  }
 }
 
-function pintar(matches) {
+function render(matches) {
   const cont = document.getElementById("panel-partidos");
-  document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-
   if (matches.length === 0) {
-    cont.innerHTML = `<div style="text-align:center; padding:2rem;">No se encontraron los IDs 71-83 en la hoja.</div>`;
+    cont.innerHTML = "No se encontraron los IDs 71-83. Revisa el GID de la pestaña.";
     return;
   }
 
-  // Ordenar por aparición en el Excel
-  matches.sort((a, b) => a.orden - b.orden);
-
   let html = "";
-  let currentDia = "";
-
-  matches.forEach(m => {
-    if (m.dia !== currentDia) {
-      currentDia = m.dia;
-      html += `<div class="section-label">${m.dia}</div>`;
-    }
-
+  matches.sort((a,b) => a.orden - b.orden).forEach(m => {
     html += `
       <div class="match-card">
         <div>
-          <span class="time-main">${m.hora}</span>
-          <span class="pista-sub">${m.pista}</span>
-          <span style="font-size:10px; color:var(--accent); font-family:'DM Mono'">${m.categoria}</span>
+          <span class="time-main">${m.hora}</span><span class="debug-info">${m.horaCoord}</span>
+          <span class="pista-sub">${m.pista} <span class="debug-info">${m.pistaCoord}</span></span>
+          <div style="margin-top:10px; font-size:10px; color:var(--accent)">ID: ${m.id} <span class="debug-info">${m.idCoord}</span></div>
         </div>
         <div>
-          <div class="team-name ${m.eq1.toUpperCase().includes('NBF')?'nbf':''}">${m.eq1}</div>
-          <div class="team-name ${m.eq2.toUpperCase().includes('NBF')?'nbf':''}">${m.eq2}</div>
+          <div class="team-row">
+            <span class="team-name ${m.eq1.includes('NBF')?'nbf':''}">${m.eq1}</span>
+            <span class="debug-info">${m.eq1Coord}</span>
+          </div>
+          <div class="team-row">
+            <span class="team-name ${m.eq2.includes('NBF')?'nbf':''}">${m.eq2}</span>
+            <span class="debug-info">${m.eq2Coord}</span>
+          </div>
         </div>
         <div class="score-col">
-          ${m.s1}<div class="score-divider"></div>${m.s2}
+          <div>${m.s1} <div style="font-size:8px; color:var(--muted)">${m.s1Coord}</div></div>
+          <div style="height:1px; background:var(--border); margin:4px 0;"></div>
+          <div>${m.s2} <div style="font-size:8px; color:var(--muted)">${m.s2Coord}</div></div>
         </div>
       </div>
     `;
   });
-
   cont.innerHTML = html;
 }
 
 update();
-setInterval(update, 60000);
 </script>
 </body>
 </html>
