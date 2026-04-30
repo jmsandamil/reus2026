@@ -1,5 +1,315 @@
 <!DOCTYPE html>
+<html lang="es"><!DOCTYPE html>
 <html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBF Castelló · Torneo</title>
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Syne:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+--bg:#0a0f1e;--surface:#111827;--border:rgba(255,255,255,0.08);
+--accent:#38bdf8;--gold:#f0b429;--text:#f1f5f9;--muted:#64748b;
+--pink:#ff4da6;
+}
+
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Syne';padding-bottom:70px;}
+header{padding:1rem;display:flex;justify-content:space-between;max-width:600px;margin:auto;}
+main{max-width:600px;margin:auto;padding:1rem;}
+
+.section-label{
+font-family:'DM Mono';
+font-size:10px;
+color:var(--accent);
+margin:2rem 0 1rem;
+display:flex;
+}
+.section-label::after{
+content:'';
+flex:1;
+height:1px;
+background:var(--border);
+margin-left:10px;
+}
+
+.match-card{
+background:var(--surface);
+border:1px solid var(--border);
+border-radius:12px;
+padding:1rem;
+margin-bottom:10px;
+display:grid;
+grid-template-columns:110px 1fr 50px;
+gap:10px;
+}
+
+.live{border:1px solid red;box-shadow:0 0 10px red;}
+
+.time-main{font-family:'DM Mono';color:var(--gold);}
+.pista-sub{font-size:10px;color:var(--muted);}
+
+.team-name{font-size:14px;color:#94a3b8;}
+.team-name.nbf{
+color:var(--text);
+border-left:2px solid var(--accent);
+padding-left:6px;
+}
+.team-name.nou{
+color:var(--pink);
+font-weight:700;
+}
+
+.score-col{text-align:right;color:var(--gold);}
+
+.nav{
+position:fixed;
+bottom:0;
+width:100%;
+display:flex;
+background:#020617;
+border-top:1px solid var(--border);
+}
+.nav button{
+flex:1;
+padding:12px;
+background:none;
+border:none;
+color:var(--muted);
+font-family:'DM Mono';
+}
+.nav button.active{color:var(--accent);}
+
+table{width:100%;border-collapse:collapse;font-family:'DM Mono';font-size:12px;}
+td,th{padding:6px;text-align:center;}
+td:first-child{text-align:left;}
+
+.leader{color:var(--gold);font-weight:800;}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>NBF U10F</h2>
+<div id="clock"></div>
+</header>
+
+<main id="content"></main>
+
+<div class="nav">
+<button onclick="mostrar('partidos')" id="btn-partidos" class="active">PARTIDOS</button>
+<button onclick="mostrar('clasif')" id="btn-clasif">CLASIF</button>
+</div>
+
+<script>
+const SHEET_URL='https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1972783032';
+const PROXY='https://corsproxy.io/?';
+
+const IDS=["71","72","73","74","75","76","77","78","79","80","81","82","83"];
+
+const PISTAS={
+"71":"PLOMS 4","72":"PLOMS 4","76":"PLOMS 4",
+"79":"PLOMS 5",
+"77":"BARRI GAUDÍ 1","73":"BARRI GAUDÍ 1","74":"BARRI GAUDÍ 1","80":"BARRI GAUDÍ 1",
+"78":"BARRI GAUDÍ 2","75":"BARRI GAUDÍ 2",
+"81":"PLOMS 5","82":"PLOMS 5","83":"PLOMS 5"
+};
+
+let partidos=[];
+
+// -------- DATA --------
+async function cargar(){
+const res=await fetch(PROXY+encodeURIComponent(SHEET_URL));
+const csv=await res.text();
+
+const rows=csv.split('\n').map(r=>r.split(',').map(c=>c.replace(/"/g,'')));
+
+let tmp=[];
+
+rows.forEach((r,i)=>{
+r.forEach((c,j)=>{
+if(IDS.includes(c)){
+
+let eq1=rows[i-1]?.[j+1]||"";
+let eq2=rows[i-1]?.[j+2]||"";
+let s1=rows[i]?.[j+1];
+let s2=rows[i]?.[j+2];
+
+let hora="--:--";
+for(let k=i;k>=0;k--){
+let h=rows[k].find(x=>/\d{1,2}:\d{2}/.test(x));
+if(h){hora=h.replace('h','');break;}
+}
+
+let dia="Torneo";
+for(let k=i;k>=0;k--){
+let txt=rows[k].join(" ").toLowerCase();
+if(txt.includes("viernes")){dia="Viernes 1 Mayo";break;}
+if(txt.includes("sábado")||txt.includes("sabado")){dia="Sábado 2 Mayo";break;}
+if(txt.includes("domingo")){dia="Domingo 3 Mayo";break;}
+}
+
+tmp.push({
+eq1,eq2,s1,s2,hora,dia,
+pista:PISTAS[c],
+orden:i
+});
+}
+});
+});
+
+partidos=tmp.sort((a,b)=>a.orden-b.orden);
+renderPartidos();
+}
+
+// -------- LIVE --------
+function enJuego(h){
+if(!h)return false;
+let now=new Date();
+let [hh,mm]=h.split(':');
+let ini=new Date();
+ini.setHours(hh,mm);
+let fin=new Date(ini.getTime()+60*60000);
+return now>=ini && now<=fin;
+}
+
+// -------- TEAM STYLE --------
+function claseEquipo(nombre){
+let cls="";
+if(nombre.includes("NBF")) cls+=" nbf";
+if(nombre.toLowerCase().includes("nou")) cls+=" nou";
+return cls;
+}
+
+// -------- RENDER PARTIDOS --------
+function renderPartidos(){
+
+let html="";
+let currentDia="";
+
+partidos.forEach(p=>{
+
+if(p.dia!==currentDia){
+currentDia=p.dia;
+html+=`<div class="section-label">${p.dia}</div>`;
+}
+
+html+=`
+<div class="match-card ${enJuego(p.hora)?'live':''}">
+<div>
+<div class="time-main">${p.hora}</div>
+<div class="pista-sub">${p.pista}</div>
+</div>
+<div>
+<div class="team-name ${claseEquipo(p.eq1)}">${p.eq1}</div>
+<div class="team-name ${claseEquipo(p.eq2)}">${p.eq2}</div>
+</div>
+<div class="score-col">${p.s1||'-'}<br>${p.s2||'-'}</div>
+</div>`;
+});
+
+document.getElementById("content").innerHTML=html;
+}
+
+// -------- CLASIFICACIÓN --------
+function clasificacion(){
+
+let tabla={};
+
+const valido=v=>v!==""&&!isNaN(v);
+const fake=n=>/1r|2n|3r|4rt|5e|perdedor/i.test(n);
+
+partidos.forEach(p=>{
+
+if(fake(p.eq1)||fake(p.eq2)) return;
+if(!valido(p.s1)||!valido(p.s2)) return;
+
+let s1=parseInt(p.s1);
+let s2=parseInt(p.s2);
+
+if(!tabla[p.eq1]) tabla[p.eq1]=initEquipo(p.eq1);
+if(!tabla[p.eq2]) tabla[p.eq2]=initEquipo(p.eq2);
+
+let a=tabla[p.eq1], b=tabla[p.eq2];
+
+a.pj++;b.pj++;
+a.pf+=s1;a.pc+=s2;
+b.pf+=s2;b.pc+=s1;
+
+if(s1>s2){a.pg++;b.pp++;a.pts+=2;b.pts+=1;}
+else{b.pg++;a.pp++;b.pts+=2;a.pts+=1;}
+
+});
+
+let lista=Object.values(tabla);
+
+lista.sort((a,b)=>b.pts-a.pts||(b.pf-b.pc)-(a.pf-a.pc));
+
+let html=`<div class="section-label">Clasificación</div>
+<table>
+<tr><th>#</th><th>Equipo</th><th>PJ</th><th>PG</th><th>PP</th><th>+/-</th><th>Pts</th></tr>`;
+
+lista.forEach((e,i)=>{
+html+=`
+<tr class="${i===0?'leader':''}" style="${e.nombre.includes('NBF')?'color:var(--accent)':''}">
+<td>${i+1}</td>
+<td>${e.nombre}</td>
+<td>${e.pj}</td>
+<td>${e.pg}</td>
+<td>${e.pp}</td>
+<td>${e.pf-e.pc}</td>
+<td>${e.pts}</td>
+</tr>`;
+});
+
+html+="</table>";
+
+if(lista.length===0){
+html+=`<div style="text-align:center;padding:1rem;color:var(--muted)">Sin resultados aún</div>`;
+}
+
+document.getElementById("content").innerHTML=html;
+}
+
+function initEquipo(n){
+return{nombre:n,pj:0,pg:0,pp:0,pf:0,pc:0,pts:0};
+}
+
+// -------- NAV --------
+function mostrar(tab){
+document.getElementById("btn-partidos").classList.remove("active");
+document.getElementById("btn-clasif").classList.remove("active");
+
+if(tab==="partidos"){
+document.getElementById("btn-partidos").classList.add("active");
+renderPartidos();
+}else{
+document.getElementById("btn-clasif").classList.add("active");
+clasificacion();
+}
+}
+
+// -------- CLOCK --------
+function reloj(){
+document.getElementById("clock").innerText=
+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+
+// -------- INIT --------
+async function init(){
+await cargar();
+reloj();
+setInterval(cargar,60000);
+setInterval(reloj,60000);
+}
+
+init();
+</script>
+
+</body>
+</html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
