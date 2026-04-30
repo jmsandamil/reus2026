@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NBF Castelló · Torneo</title>
 
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Syne:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
 :root{
@@ -13,16 +13,12 @@
 --accent:#38bdf8;--gold:#f0b429;--text:#f1f5f9;--muted:#64748b;
 }
 
-*{box-sizing:border-box;margin:0;padding:0;}
-
-body{background:var(--bg);color:var(--text);font-family:'Syne';padding-bottom:70px;}
-
-header{padding:1.5rem;max-width:600px;margin:auto;display:flex;justify-content:space-between;}
-
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Syne';padding-bottom:70px;}
+header{padding:1rem;display:flex;justify-content:space-between;max-width:600px;margin:auto;}
 main{max-width:600px;margin:auto;padding:1rem;}
 
-.section-label{font-family:'DM Mono';font-size:10px;color:var(--accent);margin:2rem 0 1rem;display:flex;gap:10px;}
-.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.section-label{font-family:'DM Mono';font-size:10px;color:var(--accent);margin:2rem 0 1rem;display:flex;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);margin-left:10px;}
 
 .match-card{
 background:var(--surface);border:1px solid var(--border);
@@ -36,15 +32,12 @@ display:grid;grid-template-columns:110px 1fr 50px;gap:10px;
 .pista-sub{font-size:10px;color:var(--muted);}
 
 .team-name{font-size:14px;color:#94a3b8;}
-.team-name.nbf{color:var(--text);border-left:2px solid var(--accent);padding-left:6px;}
+.team-name.nbf{color:white;border-left:2px solid var(--accent);padding-left:6px;}
 
 .score-col{text-align:right;color:var(--gold);}
 
-.nav{
-position:fixed;bottom:0;width:100%;display:flex;
-background:#020617;border-top:1px solid var(--border);
-}
-.nav button{flex:1;padding:12px;background:none;border:none;color:var(--muted);font-family:'DM Mono';}
+.nav{position:fixed;bottom:0;width:100%;display:flex;background:#020617;}
+.nav button{flex:1;padding:12px;background:none;border:none;color:var(--muted);}
 .nav button.active{color:var(--accent);}
 
 table{width:100%;border-collapse:collapse;font-family:'DM Mono';font-size:12px;}
@@ -58,8 +51,8 @@ td:first-child{text-align:left;}
 <body>
 
 <header>
-<h1>NBF <span style="color:var(--accent)">U10F</span></h1>
-<div id="clock">--:--</div>
+<h2>NBF U10F</h2>
+<div id="clock"></div>
 </header>
 
 <main id="content"></main>
@@ -73,7 +66,7 @@ td:first-child{text-align:left;}
 const SHEET_URL='https://docs.google.com/spreadsheets/d/1-7-itxOJfk1j4tDo2makpELp_qVICN6SzmeRTZKxu0s/export?format=csv&gid=1972783032';
 const PROXY='https://corsproxy.io/?';
 
-const MIS_IDS=["71","72","73","74","75","76","77","78","79","80","81","82","83"];
+const IDS=["71","72","73","74","75","76","77","78","79","80","81","82","83"];
 
 const PISTAS={
 "71":"PLOMS 4","72":"PLOMS 4","76":"PLOMS 4",
@@ -83,195 +76,162 @@ const PISTAS={
 "81":"PLOMS 5","82":"PLOMS 5","83":"PLOMS 5"
 };
 
-let cachePartidos=[];
+let partidos=[];
 
-async function cargarDatos(){
+// --------- DATA ---------
+async function cargar(){
 const res=await fetch(PROXY+encodeURIComponent(SHEET_URL));
 const csv=await res.text();
-
 const rows=csv.split('\n').map(r=>r.split(',').map(c=>c.replace(/"/g,'')));
 
-let matches=[];
+let tmp=[];
 
-rows.forEach((row,i)=>{
-row.forEach((cell,j)=>{
-if(MIS_IDS.includes(cell)){
+rows.forEach((r,i)=>{
+r.forEach((c,j)=>{
+if(IDS.includes(c)){
 
-let eq1=rows[i-1]?.[j+1]||"TBD";
-let eq2=rows[i-1]?.[j+2]||"TBD";
-
+let eq1=rows[i-1]?.[j+1]||"";
+let eq2=rows[i-1]?.[j+2]||"";
 let s1=rows[i]?.[j+1];
 let s2=rows[i]?.[j+2];
 
 let hora="--:--";
 for(let k=i;k>=0;k--){
-let h=rows[k].find(c=>/\d{1,2}:\d{2}/.test(c));
+let h=rows[k].find(x=>/\d{1,2}:\d{2}/.test(x));
 if(h){hora=h.replace('h','');break;}
 }
 
-let dia="Torneo";
-for(let k=i;k>=0;k--){
-let txt=rows[k].join(" ").toLowerCase();
-if(txt.includes("viernes")){dia="Viernes";break;}
-if(txt.includes("sábado")){dia="Sábado";break;}
-if(txt.includes("domingo")){dia="Domingo";break;}
-}
-
-matches.push({
-dia,hora,
-pista:PISTAS[cell],
-eq1,eq2,
-s1,s2,
+tmp.push({
+eq1,eq2,s1,s2,hora,
+pista:PISTAS[c],
 orden:i
 });
 }
 });
 });
 
-matches.sort((a,b)=>a.orden-b.orden);
-cachePartidos=matches;
-
+partidos=tmp.sort((a,b)=>a.orden-b.orden);
 renderPartidos();
 }
 
-function esEnJuego(hora){
-if(!hora)return false;
-const now=new Date();
-const [h,m]=hora.split(':');
-const inicio=new Date();
-inicio.setHours(h,m);
-
-const fin=new Date(inicio.getTime()+60*60000); // 1h duración
-
-return now>=inicio && now<=fin;
+// --------- LIVE ---------
+function enJuego(h){
+if(!h)return false;
+let now=new Date();
+let [hh,mm]=h.split(':');
+let ini=new Date();
+ini.setHours(hh,mm);
+let fin=new Date(ini.getTime()+60*60000);
+return now>=ini && now<=fin;
 }
 
+// --------- RENDER PARTIDOS ---------
 function renderPartidos(){
 let html="";
-let current="";
-
-cachePartidos.forEach(m=>{
-
-if(m.dia!==current){
-current=m.dia;
-html+=`<div class="section-label">${m.dia}</div>`;
-}
-
-const live=esEnJuego(m.hora);
-
+partidos.forEach(p=>{
 html+=`
-<div class="match-card ${live?'live':''}">
+<div class="match-card ${enJuego(p.hora)?'live':''}">
 <div>
-<div class="time-main">${m.hora}</div>
-<div class="pista-sub">${m.pista}</div>
+<div class="time-main">${p.hora}</div>
+<div class="pista-sub">${p.pista}</div>
 </div>
 <div>
-<div class="team-name ${m.eq1.includes('NBF')?'nbf':''}">${m.eq1}</div>
-<div class="team-name ${m.eq2.includes('NBF')?'nbf':''}">${m.eq2}</div>
+<div class="team-name ${p.eq1.includes('NBF')?'nbf':''}">${p.eq1}</div>
+<div class="team-name ${p.eq2.includes('NBF')?'nbf':''}">${p.eq2}</div>
 </div>
-<div class="score-col">
-${m.s1||'-'}<br>${m.s2||'-'}
-</div>
+<div class="score-col">${p.s1||'-'}<br>${p.s2||'-'}</div>
 </div>`;
 });
-
 document.getElementById("content").innerHTML=html;
 }
 
-function generarClasificacion(){
+// --------- CLASIFICACIÓN PRO ---------
+function clasificacion(){
 
 let tabla={};
 
-cachePartidos.forEach(m=>{
+const valido=v=>v!==""&&!isNaN(v);
+const fake=n=>/1r|2n|3r|4rt|5e|perdedor/i.test(n);
 
-if(isNaN(m.s1)||isNaN(m.s2))return;
+partidos.forEach(p=>{
 
-let s1=parseInt(m.s1);
-let s2=parseInt(m.s2);
+if(fake(p.eq1)||fake(p.eq2)) return;
+if(!valido(p.s1)||!valido(p.s2)) return;
 
-if(!tabla[m.eq1])tabla[m.eq1]=initEquipo(m.eq1);
-if(!tabla[m.eq2])tabla[m.eq2]=initEquipo(m.eq2);
+let s1=parseInt(p.s1);
+let s2=parseInt(p.s2);
 
-let e1=tabla[m.eq1];
-let e2=tabla[m.eq2];
+if(!tabla[p.eq1]) tabla[p.eq1]=init(p.eq1);
+if(!tabla[p.eq2]) tabla[p.eq2]=init(p.eq2);
 
-e1.pj++;e2.pj++;
+let a=tabla[p.eq1], b=tabla[p.eq2];
 
-e1.pf+=s1;e1.pc+=s2;
-e2.pf+=s2;e2.pc+=s1;
+a.pj++;b.pj++;
+a.pf+=s1;a.pc+=s2;
+b.pf+=s2;b.pc+=s1;
 
-if(s1>s2){
-e1.pg++;e2.pp++;
-e1.pts+=2;e2.pts+=1;
-}else{
-e2.pg++;e1.pp++;
-e2.pts+=2;e1.pts+=1;
-}
+if(s1>s2){a.pg++;b.pp++;a.pts+=2;b.pts+=1;}
+else{b.pg++;a.pp++;b.pts+=2;a.pts+=1;}
+
 });
 
 let lista=Object.values(tabla);
 
-lista.sort((a,b)=>
-b.pts-a.pts||
-(b.pf-b.pc)-(a.pf-a.pc)
-);
+lista.sort((a,b)=>b.pts-a.pts||(b.pf-b.pc)-(a.pf-a.pc));
 
 let html=`<div class="section-label">Clasificación</div>
 <table>
 <tr><th>#</th><th>Equipo</th><th>PJ</th><th>PG</th><th>PP</th><th>+/-</th><th>Pts</th></tr>`;
 
 lista.forEach((e,i)=>{
-
-const leader=i===0;
-const nbf=e.nombre.includes("NBF");
-
 html+=`
-<tr class="${leader?'leader':''}" style="${nbf?'color:var(--accent);':''}">
-<td>${i+1}</td>
-<td>${e.nombre}</td>
-<td>${e.pj}</td>
-<td>${e.pg}</td>
-<td>${e.pp}</td>
-<td>${e.pf-e.pc}</td>
-<td>${e.pts}</td>
+<tr class="${i==0?'leader':''}" style="${e.nombre.includes('NBF')?'color:var(--accent)':''}">
+<td>${i+1}</td><td>${e.nombre}</td>
+<td>${e.pj}</td><td>${e.pg}</td><td>${e.pp}</td>
+<td>${e.pf-e.pc}</td><td>${e.pts}</td>
 </tr>`;
 });
 
 html+="</table>";
 
+if(lista.length==0){
+html+=`<div style="text-align:center;padding:1rem;color:var(--muted)">Sin resultados aún</div>`;
+}
+
 document.getElementById("content").innerHTML=html;
 }
 
-function initEquipo(nombre){
-return{nombre,pj:0,pg:0,pp:0,pf:0,pc:0,pts:0};
-}
+function init(n){return{nombre:n,pj:0,pg:0,pp:0,pf:0,pc:0,pts:0};}
 
-function mostrar(tab){
+// --------- NAV ---------
+function mostrar(t){
 document.getElementById("btn-partidos").classList.remove("active");
 document.getElementById("btn-clasif").classList.remove("active");
 
-if(tab==="partidos"){
+if(t=="partidos"){
 document.getElementById("btn-partidos").classList.add("active");
 renderPartidos();
 }else{
 document.getElementById("btn-clasif").classList.add("active");
-generarClasificacion();
+clasificacion();
 }
 }
 
+// --------- CLOCK ---------
 function reloj(){
 document.getElementById("clock").innerText=
 new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
 
-async function init(){
-await cargarDatos();
+// --------- INIT ---------
+async function initApp(){
+await cargar();
 reloj();
+setInterval(cargar,60000);
 setInterval(reloj,60000);
-setInterval(cargarDatos,60000);
 }
 
-init();
+initApp();
 </script>
 
 </body>
